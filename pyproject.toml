@@ -1,0 +1,87 @@
+[build-system]
+requires      = ["hatchling"]
+build-backend = "hatchling.build"
+
+# ── Project metadata ──────────────────────────────────────────────────────────
+[project]
+name            = "crypto-streaming-pipeline"
+version         = "0.1.0"
+description     = "Real-time crypto trade ingestion and lakehouse analytics platform"
+readme          = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+  # WebSocket producer
+  "websockets>=12.0,<13.0",  # 13+ has breaking API changes; bump deliberately after testing
+  # RabbitMQ client
+  "pika>=1.3",
+  # Postgres drivers
+  "psycopg2-binary>=2.9",
+  "sqlalchemy>=2.0",
+  # Data validation
+  "pydantic>=2.0",
+  # Environment / config
+  "python-dotenv>=1.0",
+  # Structured logging
+  "python-json-logger>=2.0",
+  # Metrics
+  "prometheus-client>=0.19",
+  # Data processing (Gold layer utilities)
+  "pandas>=2.1",
+]
+
+# ── Dev dependencies (uv uses [dependency-groups], not optional-dependencies) ─
+# `uv sync --group dev` installs these alongside the main dependencies.
+[dependency-groups]
+dev = [
+  # Testing
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+  "pytest-asyncio>=0.23",
+  # Linting / formatting — ruff replaces black + isort + pylint
+  "ruff>=0.4",
+  # Type checking
+  "mypy>=1.8",
+  "types-psycopg2>=2.9",
+  # Test utilities
+  "factory-boy>=3.3",
+  "freezegun>=1.4",
+]
+
+# ── Entry points ──────────────────────────────────────────────────────────────
+[project.scripts]
+crypto-producer = "producer.main:main"
+crypto-consumer = "consumer.main:main"
+
+# ── Package discovery ─────────────────────────────────────────────────────────
+[tool.hatch.build.targets.wheel]
+packages = ["producer", "consumer", "shared", "lakehouse", "infra"]
+
+# ── Ruff (replaces black + isort + pylint) ────────────────────────────────────
+[tool.ruff]
+line-length    = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "TID"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["producer", "consumer", "shared", "lakehouse", "infra"]
+
+[tool.ruff.format]
+# ruff format is the black-compatible formatter — no need for black as a separate dep
+quote-style = "double"
+indent-style = "space"
+
+# ── pytest ────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths    = ["tests"]
+asyncio_mode = "auto"
+addopts      = "--cov=. --cov-report=term-missing --cov-omit=tests/*,migrations/*,.venv/*"
+
+# ── mypy ──────────────────────────────────────────────────────────────────────
+[tool.mypy]
+python_version         = "3.11"
+ignore_missing_imports = true
+strict                 = false

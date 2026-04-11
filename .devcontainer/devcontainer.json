@@ -1,0 +1,76 @@
+{
+  "name": "Crypto Streaming Pipeline",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  "forwardPorts": [
+    5432,
+    5672,
+    15672,
+    3000,
+    8000,
+    8001
+  ],
+  "portsAttributes": {
+    "5432": {
+      "label": "PostgreSQL"
+    },
+    "5672": {
+      "label": "RabbitMQ AMQP"
+    },
+    "15672": {
+      "label": "RabbitMQ UI",
+      "onAutoForward": "notify"
+    },
+    "3000": {
+      "label": "Metabase",
+      "onAutoForward": "notify"
+    },
+    "8000": {
+      "label": "Producer /metrics",
+      "onAutoForward": "silent"
+    },
+    "8001": {
+      "label": "Consumer /metrics",
+      "onAutoForward": "silent"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "ms-azuretools.vscode-docker",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg",
+        "innoverio.vscode-dbt-power-user",
+        "redhat.vscode-yaml",
+        "tamasfe.even-better-toml"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
+        "editor.formatOnSave": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        },
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": [
+          "tests"
+        ],
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.env.linux": {
+          "VIRTUAL_ENV": "${containerWorkspaceFolder}/.venv",
+          "PATH": "${containerWorkspaceFolder}/.venv/bin:${env:PATH}"
+        }
+      }
+    }
+  },
+  "postCreateCommand": "cp .env.example .env 2>/dev/null || true && UV_LINK_MODE=copy uv sync --group dev",
+  "postStartCommand": "docker compose up -d --wait 2>/dev/null || true",
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/crypto-streaming-lakehouse"
+}
