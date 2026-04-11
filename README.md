@@ -1,7 +1,6 @@
 # Real-Time Crypto Streaming & Lakehouse Analytics
-## Overview
 
-This project implements a production-style, event-driven data pipeline that ingests real-time cryptocurrency trade data and transforms it into analytical insights using a modern lakehouse architecture.
+A production-style, event-driven data pipeline that ingests real-time cryptocurrency trade data and transforms it into analytical insights using a modern lakehouse architecture.
 
 The system simulates a quantitative trading firm environment where:
 
@@ -9,8 +8,12 @@ The system simulates a quantitative trading firm environment where:
 - Analytical workloads must not impact transactional systems
 - Real-time insights (VWAP, volatility, trade counts) are required
 
+---
+
 ## Architecture
+
 ### End-to-End Data Flow
+
 ```
 Coinbase WebSocket
         ↓
@@ -20,170 +23,380 @@ RabbitMQ (Message Broker / Buffer)
         ↓
 Python Consumer (Worker)
         ↓
-PostgreSQL (Bronze Layer)
+PostgreSQL (Bronze → Silver → Gold)
         ↓
-dbt (Silver + Gold Transformations)
+dbt (Transformation Layer)
         ↓
 DuckDB + DuckLake (Lakehouse OLAP)
         ↓
 Metabase (BI Dashboard)
 ```
 
-## Core Components
-1. Producer (Python + WebSockets)
-    - Connects to Coinbase WebSocket feed
-    - Filters for trading pair (e.g., BTC-USD)
-    - Streams raw JSON messages to RabbitMQ
-2. RabbitMQ (Message Broker)
-    - Buffers incoming trade events
-    - Decouples ingestion from persistence
-    - Ensures resilience during downstream outages
-3. Consumer (Python Worker)
-    - Subscribes to RabbitMQ queue
-    - Processes messages in real-time
-    - Inserts raw JSON into PostgreSQL
-4. PostgreSQL (Medallion Layers)
-    - Bronze: Raw JSON ingestion
-    - Silver: Cleaned + typed trades
-    - Gold: Aggregated metrics (VWAP, windows, stats)
-5. dbt (Transformation Layer)
-    - SQL-based transformations
-    - Data modeling with medallion architecture
-    - Incremental models for performance
-6. DuckDB + DuckLake (Lakehouse)
-    - Analytical storage optimized for reads
-    - Stores Gold layer outputs as Parquet
-    - Lightweight OLAP engine
-7. Metabase (Analytics)
-    - Dashboarding layer
-    - Connects directly to DuckDB
-    - Visualizes trading metrics
+### Core Components
+
+**Producer** — Python + WebSockets
+Connects to the Coinbase Advanced Trade WebSocket feed, filters for a configured trading pair (default: BTC-USD), validates incoming messages via Pydantic, and publishes serialized JSON events to RabbitMQ with publisher confirms.
+
+**RabbitMQ** — Message Broker
+Buffers incoming trade events and decouples ingestion from persistence. Provides resilience during downstream outages via a durable queue and a dead-letter queue (DLQ) for poison messages.
+
+**Consumer** — Python Worker
+Subscribes to the RabbitMQ queue with manual ACK. Accumulates messages in a batch buffer and flushes to PostgreSQL using bulk inserts. Idempotent by design — duplicate `trade_id` values are silently rejected at the database level.
+
+**PostgreSQL** — Medallion Storage (OLTP)
+
+| Layer | Schema | Purpose |
+|---|---|---|
+| Bronze | `bronze` | Raw JSON ingestion — `bronze.raw_trades` |
+| Silver | `silver` | Typed, deduplicated trades — `stg_trades` |
+| Gold | `gold` | Aggregated metrics — VWAP, volatility, trade stats |
+
+**dbt** — Transformation Layer
+SQL-based transformations with incremental models for performance. Implements the full medallion architecture: staging models parse and cast JSONB fields; gold models compute VWAP, moving windows, and volatility indicators. Data quality enforced via built-in and custom generic tests.
+
+**DuckDB + DuckLake** — Lakehouse (OLAP)
+Analytical storage optimized for read workloads. Gold layer outputs are exported as Parquet (Snappy-compressed, partitioned by date) and registered as DuckDB views. Optional S3 backend via `boto3`.
+
+**Metabase** — BI Dashboard
+Connects directly to DuckDB. Visualizes VWAP, trade volume, buy/sell ratio, and price volatility with 60-second auto-refresh.
+
+---
 
 ## Tech Stack
-```
-Layer	                    Technology
--------------------------------------------------
-Ingestion	                Python, WebSockets
-Messaging	                RabbitMQ
-Storage (OLTP)	            PostgreSQL
-Transformations	            dbt
-Lakehouse	                DuckDB + DuckLake + S3 (optional)
-BI	                        Metabase
-Orchestration (Optional)	Airflow
-Infrastructure	            Docker Compose
+
+| Layer | Technology |
+|---|---|
+| Ingestion | Python 3.11, WebSockets |
+| Messaging | RabbitMQ 3.12 |
+| Storage (OLTP) | PostgreSQL 15 |
+| Transformations | dbt Core |
+| Lakehouse | DuckDB + DuckLake + S3 (optional) |
+| BI | Metabase |
+| Orchestration | Airflow (stretch goal — Phase 7) |
+| Infrastructure | Docker Compose |
+
+---
+
+## 🚀 Quick Start
+
+### Option A — Dev Container (recommended)
+
+Everything runs inside a pre-configured container. No local Python, Postgres, or RabbitMQ installation required.
+
+**Prerequisites**
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Docker Engine + Compose v2
+- [VS Code](https://code.visualstudio.com/) with the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+
+**1. Clone and configure**
+```bash
+git clone <repo-url>
+cd crypto-streaming-pipeline
+cp .env.example .env
 ```
 
-## Setup Instructions
-1. Clone Repo
-    - `git clone <repo-url>`
-    - `cd crypto-streaming-lakehouse`
-2. Start Infrastructure
-    - `docker-compose up -d`
+Open `.env` and set the two required passwords:
+```
+POSTGRES_PASSWORD=<choose a strong password>
+RABBITMQ_DEFAULT_PASS=<choose a strong password>
+```
 
-    Services:
-    - Postgres
-    - RabbitMQ
-    - (Optional) Metabase
-3. Run Producer
-    - `python producer/main.py`
-4. Run Consumer
-    - `python consumer/main.py`
-5. Run dbt
-    - `dbt run`
-6. Run Lakehouse Export
-    - `python lakehouse/export.py`
+**2. Open in Dev Container**
+
+Open the VS Code Command Palette (`Cmd/Ctrl + Shift + P`) and run:
+```
+Dev Containers: Reopen in Container
+```
+
+VS Code will build the container image and install all Python dependencies automatically (~2 min on first run; instant thereafter).
+
+**3. Start the infrastructure**
+```bash
+docker compose up -d
+```
+
+Verify all services are healthy before proceeding:
+```bash
+docker compose ps
+```
+
+**4. Run migrations and bootstrap RabbitMQ**
+```bash
+python infra/migrate.py
+python infra/rabbitmq_setup.py
+```
+
+**5. Start the pipeline**
+```bash
+# Terminal 1 — producer
+python -m producer.main
+
+# Terminal 2 — consumer
+python -m consumer.main
+```
+
+**6. Run dbt transformations**
+```bash
+cd dbt && dbt run
+```
+
+**7. Export to lakehouse**
+```bash
+python lakehouse/export.py
+```
+
+---
+
+### Option B — Manual Setup (without Dev Container)
+
+```bash
+# Python 3.11+ required
+python -m venv .venv
+source .venv/bin/activate     # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+
+cp .env.example .env
+# Edit .env — fill in POSTGRES_PASSWORD and RABBITMQ_DEFAULT_PASS
+
+docker compose up -d
+python infra/migrate.py
+python infra/rabbitmq_setup.py
+
+# Then run producer, consumer, dbt, and lakehouse export as above
+```
+
+---
+
+## 🌐 Service URLs
+
+| Service | URL | Credentials |
+|---|---|---|
+| RabbitMQ Management UI | http://localhost:15672 | `RABBITMQ_DEFAULT_USER` / `RABBITMQ_DEFAULT_PASS` from `.env` |
+| Metabase | http://localhost:3000 | Configured on first launch |
+| PostgreSQL | `localhost:5432` | `POSTGRES_USER` / `POSTGRES_PASSWORD` from `.env` |
+| Producer metrics | http://localhost:8000/metrics | — |
+| Consumer metrics | http://localhost:8001/metrics | — |
+
+---
+
+## 📁 Project Structure
+
+```
+crypto-streaming-pipeline/
+│
+├── .devcontainer/
+│   ├── devcontainer.json       # VS Code Dev Container config
+│   └── Dockerfile              # Dev container image
+│
+├── producer/                   # WebSocket → RabbitMQ
+│   ├── main.py
+│   ├── ws_client.py
+│   ├── publisher.py
+│   ├── schemas.py
+│   ├── validator.py
+│   ├── metrics.py
+│   ├── logger.py
+│   └── config.py
+│
+├── consumer/                   # RabbitMQ → PostgreSQL (Bronze)
+│   ├── main.py
+│   ├── consumer.py
+│   ├── repository.py
+│   ├── batch_buffer.py
+│   └── metrics.py
+│
+├── shared/                     # Shared utilities
+│   ├── logger.py
+│   └── metrics.py
+│
+├── infra/                      # Infrastructure scripts
+│   ├── migrate.py              # SQL migration runner
+│   └── rabbitmq_setup.py       # Queue/exchange bootstrap
+│
+├── migrations/                 # Numbered SQL migration files
+│   ├── 001_bronze_schema.sql
+│   └── 002_bronze_trade_id_index.sql
+│
+├── dbt/                        # dbt transformation project
+│   ├── dbt_project.yml
+│   ├── profiles.yml
+│   └── models/
+│       ├── silver/
+│       └── gold/
+│
+├── lakehouse/                  # DuckDB / DuckLake export
+│   ├── exporter.py
+│   ├── init_catalog.py
+│   └── schema.py
+│
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── benchmark/
+│
+├── docker-compose.yml
+├── pyproject.toml
+├── .env.example
+└── README.md
+```
+
+---
 
 ## Key Metrics (Gold Layer)
-- VWAP (Volume Weighted Average Price)
-- Trade count per minute
-- High/Low price per window
-- Moving averages
-- Volatility indicators
 
-## Fault Tolerance Strategy
-- RabbitMQ buffers during outages
-- Consumer retry logic
-- Idempotent inserts
-- dbt incremental models
---- 
+Computed by dbt models in the `gold` schema and served through the DuckDB lakehouse to Metabase:
 
-## PROJECT ROADMAP
-### Phase 1: Infrastructure Setup (Day 1)
-- #### Goals
-    - Establish local environment
-    - Verify connectivity across services
-- #### Tasks
-    - Create docker-compose.yml
-    - Spin up Postgres + RabbitMQ
-    - Validate connections (CLI + UI)
-    - Define queue + exchange
-- #### Deliverable
-    - Running containers + verified connectivity
+- **VWAP** — Volume Weighted Average Price per 1-minute window
+- **Trade count** — number of trades per minute
+- **High / Low price** — per window
+- **Volatility** — standard deviation of price per window
+- **Buy/sell ratio** — buy volume as a percentage of total volume per window
+- **Moving averages** — rolling VWAP across configurable windows (stretch)
 
-### Phase 2: Producer (Streaming Ingestion)
-- #### Goals
-    - Establish stable WebSocket connection
-    - Push events to RabbitMQ
-- #### Tasks
-    - Implement WebSocket client
-    - Filter BTC-USD trades
-    - Serialize JSON payloads
-    - Publish messages to queue
-    - Handle reconnect logic
-- #### Deliverable
-    - Live trade data flowing into RabbitMQ
+---
 
-### Phase 3: Consumer + Bronze Layer- 
-- #### Goals
-    - Persist raw events safely
-- #### Tasks
-    - Build RabbitMQ consumer
-    - Design bronze_trades table
-    - Insert raw JSON
-    - Implement retry/backoff logic
-    - Optimize batch inserts
-- #### Deliverable
-    - Continuous ingestion into Postgres
+## Fault Tolerance
 
-### Phase 4: dbt (Silver + Gold)- 
-- #### Goals
-    - Transform raw data into analytics-ready models
-- #### Tasks
-    - Initialize dbt project
-    - Create staging models
-    - Parse JSON fields
-    - Cast data types
-    - Deduplicate trades
-    - Build aggregations
-- #### Deliverable
-    - Clean Silver + Gold layers
+| Layer | Strategy |
+|---|---|
+| WebSocket drop | Exponential backoff reconnect (1s → 60s max, 10 attempts) |
+| RabbitMQ unavailable | Producer buffers locally with in-memory retry deque |
+| Consumer crash | Manual ACK — unacknowledged messages requeued automatically |
+| Poison messages | NACK with `requeue=False` routes to dead-letter queue (DLQ) |
+| Duplicate delivery | `ON CONFLICT (trade_id) DO NOTHING` at the DB layer |
+| dbt failures | Incremental models — only failed windows need reprocessing |
 
-### Phase 5: Lakehouse Export
-- #### Goals
-    - Move analytics workload off Postgres
-- #### Tasks
-    - Extract Gold data
-    - Write to DuckDB
-    - Store as Parquet via DuckLake
-    - Validate query performance
-- #### Deliverable
-    - Queryable DuckDB lakehouse
+---
 
-### Phase 6: BI Dashboard
-- #### Goals
-    - Deliver business insights
-- #### Tasks
-    - Connect Metabase to DuckDB
-    - Build dashboards
-    - Create charts for VWAP, volume, volatility
-- #### Deliverable
-    - Real-time analytics dashboard
+## Reference
 
-### Phase 7 (Stretch): Orchestration
-- #### Goals
-    - Automate pipeline
-- #### Tasks
-    - Add Airflow DAG
-    - Schedule dbt + export jobs
-- #### Deliverable
-    - Fully automated pipeline
+### Naming Conventions
+
+| Artifact | Pattern | Example |
+|---|---|---|
+| Docker containers | `crypto_*` | `crypto_postgres` |
+| Docker network | `crypto_net` | — |
+| RabbitMQ exchange | `crypto.*.exchange` | `crypto.trades.exchange` |
+| RabbitMQ queues | `crypto.*.queue` | `crypto.trades.queue` |
+| Postgres schemas | layer name | `bronze`, `silver`, `gold` |
+| dbt models (silver) | `stg_*` | `stg_trades` |
+| dbt models (gold) | `gold_*` | `gold_vwap_1min` |
+
+### Data Contract: Producer → Consumer
+
+Messages published to `crypto.trades.exchange` with routing key `trades.raw`. Content-type: `application/json`.
+
+```json
+{
+  "trade_id":   "string  — unique Coinbase trade ID (used for deduplication)",
+  "price":      "string  — execution price in USD (cast to NUMERIC(18,8) in silver)",
+  "size":       "string  — trade size in BTC (cast to NUMERIC(18,8) in silver)",
+  "side":       "string  — enum: buy | sell",
+  "time":       "string  — ISO 8601 UTC timestamp → traded_at in silver",
+  "product_id": "string  — expected: BTC-USD (filtered by producer)"
+}
+```
+
+### Environment Variables
+
+| Variable | Service | Required | Description |
+|---|---|---|---|
+| `POSTGRES_USER` | Postgres | Yes | Database user |
+| `POSTGRES_PASSWORD` | Postgres | **Yes — no default** | Database password |
+| `POSTGRES_DB` | Postgres | Yes | Database name |
+| `DATABASE_URL` | App | Yes | SQLAlchemy connection string |
+| `RABBITMQ_DEFAULT_USER` | RabbitMQ | Yes | Admin user |
+| `RABBITMQ_DEFAULT_PASS` | RabbitMQ | **Yes — no default** | Admin password |
+| `AMQP_URL` | App | Yes | pika connection string |
+| `RABBITMQ_EXCHANGE` | App | Yes | Exchange name |
+| `RABBITMQ_QUEUE` | App | Yes | Main queue name |
+| `WEBSOCKET_URL` | Producer | Yes | Coinbase WS endpoint |
+| `PRODUCT_ID` | Producer | Yes | Trading pair (default: `BTC-USD`) |
+| `CONSUMER_PREFETCH` | Consumer | No | RabbitMQ prefetch count (default: `100`) |
+| `BATCH_SIZE` | Consumer | No | Insert batch size (default: `200`) |
+| `BATCH_TIMEOUT_MS` | Consumer | No | Batch flush timeout (default: `2000`) |
+
+See `.env.example` for the complete list with defaults.
+
+---
+
+## 🧪 Running Tests
+
+```bash
+# Unit tests
+pytest tests/unit/
+
+# Integration tests (requires docker compose up -d)
+pytest tests/integration/
+
+# Full suite with coverage report
+pytest --cov --cov-report=html
+open htmlcov/index.html
+
+# dbt data quality tests (requires dbt run first)
+cd dbt && dbt test
+```
+
+---
+
+## 🗺️ Project Roadmap
+
+### Phase 1 — Infrastructure Setup
+**Goal:** Establish local environment; verify connectivity across all services.
+
+Tasks: `docker-compose.yml`, Postgres + RabbitMQ containers, connection validation, queue/exchange bootstrap.
+
+**Deliverable:** All containers healthy; services communicating on `crypto_net`.
+
+---
+
+### Phase 2 — Producer (Streaming Ingestion)
+**Goal:** Establish a stable WebSocket connection and push trade events to RabbitMQ.
+
+Tasks: WebSocket client with exponential backoff reconnect, BTC-USD filter, Pydantic message validation, RabbitMQ publisher with delivery confirms.
+
+**Deliverable:** Live BTC-USD trade data flowing into RabbitMQ at production rate.
+
+---
+
+### Phase 3 — Consumer + Bronze Layer
+**Goal:** Persist raw trade events safely and efficiently.
+
+Tasks: RabbitMQ consumer with manual ACK, `bronze.raw_trades` schema + migration, idempotent insert (`ON CONFLICT`), batch buffer with configurable flush size/timeout.
+
+**Deliverable:** Continuous ingestion into Postgres Bronze layer with zero message loss.
+
+---
+
+### Phase 4 — dbt (Silver + Gold)
+**Goal:** Transform raw Bronze data into analytics-ready models.
+
+Tasks: dbt project init, staging model (`stg_trades`) with JSONB parsing + deduplication, gold aggregation models (VWAP, volatility, buy/sell stats), custom generic tests, source freshness checks.
+
+**Deliverable:** Clean Silver layer + queryable Gold layer with passing data quality tests.
+
+---
+
+### Phase 5 — Lakehouse Export
+**Goal:** Move analytical workload off Postgres and into a read-optimised lakehouse.
+
+Tasks: Incremental Parquet export from Gold tables, DuckDB catalog registration, Parquet partitioning (year/month/day), optional S3 backend.
+
+**Deliverable:** Queryable DuckDB lakehouse with <200ms VWAP query response.
+
+---
+
+### Phase 6 — BI Dashboard
+**Goal:** Deliver business insights to non-technical stakeholders.
+
+Tasks: Metabase → DuckDB connection, VWAP time-series chart, volume bar chart, buy/sell ratio chart, volatility chart, 60-second auto-refresh.
+
+**Deliverable:** Live analytics dashboard accessible at http://localhost:3000.
+
+---
+
+### Phase 7 — Orchestration *(stretch)*
+**Goal:** Fully automate the pipeline end-to-end.
+
+Tasks: Airflow DAG scheduling dbt runs and lakehouse export, alerting on source freshness failures, backfill support.
+
+**Deliverable:** Hands-free pipeline with scheduled transforms and automated data quality monitoring.
