@@ -57,6 +57,7 @@ services:
   # ── Metabase (BI Dashboard) ──────────────────────────────────────
   metabase:
     image: metabase/metabase:v0.49.6
+    platform: linux/amd64
     container_name: crypto_metabase
     restart: unless-stopped
     networks:
