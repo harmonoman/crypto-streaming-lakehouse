@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       build-essential \
       libpq-dev \
       procps \
-      sudo \  
       ca-certificates \
       gnupg \
       lsb-release \
@@ -36,9 +35,7 @@ ARG USER_GID=1000
 RUN groupadd --gid ${USER_GID} ${USERNAME} \
   && useradd --uid ${USER_UID} --gid ${USER_GID} --shell /bin/bash --create-home ${USERNAME} \
   && groupadd -f docker \
-  && usermod -aG docker ${USERNAME} \
-  && echo "${USERNAME} ALL=(root) NOPASSWD:/bin/chown" >> /etc/sudoers.d/vscode-docker \
-  && chmod 0440 /etc/sudoers.d/vscode-docker
+  && usermod -aG docker ${USERNAME}
 
 # ── uv ────────────────────────────────────────────────────────────────────────
 # Install uv system-wide as root. Pinned — bump deliberately.
