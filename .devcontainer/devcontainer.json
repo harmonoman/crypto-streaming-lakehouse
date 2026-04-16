@@ -53,6 +53,8 @@
       ],
       "settings": {
         "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
+        "python.terminal.useEnvFile": true,
+        "python.envFile": "${containerWorkspaceFolder}/.env",
         "editor.formatOnSave": true,
         "[python]": {
           "editor.defaultFormatter": "charliermarsh.ruff"

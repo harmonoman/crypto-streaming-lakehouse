@@ -94,10 +94,14 @@ cd crypto-streaming-pipeline
 cp .env.example .env
 ```
 
-Open `.env` and set the two required passwords:
+Open `.env` and fill in the required values:
 ```
-POSTGRES_PASSWORD=<choose a strong password>
-RABBITMQ_DEFAULT_PASS=<choose a strong password>
+POSTGRES_PASSWORD=yourpassword
+RABBITMQ_DEFAULT_PASS=yourpassword   # minimum 20 characters
+
+# Also update the connection strings with the same password:
+DATABASE_URL=postgresql://crypto_user:yourpassword@host.docker.internal:5432/crypto_pipeline
+AMQP_URL=amqp://crypto_rabbit:yourpassword@host.docker.internal:5672/
 ```
 
 **2. Open in Dev Container**
@@ -150,12 +154,14 @@ python lakehouse/export.py
 
 ```bash
 # Python 3.11+ required
-python -m venv .venv
-source .venv/bin/activate     # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+# Install uv if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create venv and install all dependencies
+uv sync --group dev
 
 cp .env.example .env
-# Edit .env — fill in POSTGRES_PASSWORD and RABBITMQ_DEFAULT_PASS
+# Edit .env — fill in passwords and update DATABASE_URL and AMQP_URL
 
 docker compose up -d
 python infra/migrate.py
@@ -213,8 +219,7 @@ crypto-streaming-pipeline/
 │   └── rabbitmq_setup.py       # Queue/exchange bootstrap
 │
 ├── migrations/                 # Numbered SQL migration files
-│   ├── 001_bronze_schema.sql
-│   └── 002_bronze_trade_id_index.sql
+│   └── 001_bronze_schema.sql
 │
 ├── dbt/                        # dbt transformation project
 │   ├── dbt_project.yml
@@ -303,9 +308,9 @@ Messages published to `crypto.trades.exchange` with routing key `trades.raw`. Co
 | `POSTGRES_USER` | Postgres | Yes | Database user |
 | `POSTGRES_PASSWORD` | Postgres | **Yes — no default** | Database password |
 | `POSTGRES_DB` | Postgres | Yes | Database name |
-| `DATABASE_URL` | App | Yes | SQLAlchemy connection string |
+| `DATABASE_URL` | App | Yes | psycopg2 connection string |
 | `RABBITMQ_DEFAULT_USER` | RabbitMQ | Yes | Admin user |
-| `RABBITMQ_DEFAULT_PASS` | RabbitMQ | **Yes — no default** | Admin password |
+| `RABBITMQ_DEFAULT_PASS` | RabbitMQ | **Yes — no default** | Admin password (min 20 chars) |
 | `AMQP_URL` | App | Yes | pika connection string |
 | `RABBITMQ_EXCHANGE` | App | Yes | Exchange name |
 | `RABBITMQ_QUEUE` | App | Yes | Main queue name |
@@ -323,18 +328,31 @@ See `.env.example` for the complete list with defaults.
 
 ```bash
 # Unit tests
-pytest tests/unit/
+uv run pytest tests/unit/
 
 # Integration tests (requires docker compose up -d)
-pytest tests/integration/
+uv run pytest tests/integration/
 
 # Full suite with coverage report
-pytest --cov --cov-report=html
+uv run pytest --cov --cov-report=html
 open htmlcov/index.html
 
 # dbt data quality tests (requires dbt run first)
-cd dbt && dbt test
+cd dbt && uv run dbt test
 ```
+
+---
+
+## 🔧 Dependency Management
+
+| Task | Command |
+|---|---|
+| Install all deps (incl. dev) | `uv sync --group dev` |
+| Add a runtime dependency | `uv add <package>` |
+| Add a dev dependency | `uv add --group dev <package>` |
+| Run a script | `uv run python <script>` |
+
+Always commit `uv.lock` to version control.
 
 ---
 
