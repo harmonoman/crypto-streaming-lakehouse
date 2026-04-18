@@ -7,14 +7,13 @@ All WebSocket tests use mocked connections — no real network.
 
 import json
 import logging
+from unittest.mock import AsyncMock, patch
+
 import pytest
 import websockets.exceptions
 
-from unittest.mock import AsyncMock, patch
-
-from producer.ws_client import CoinbaseWebSocketClient
 from producer.utils import exponential_backoff
-
+from producer.ws_client import CoinbaseWebSocketClient
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 

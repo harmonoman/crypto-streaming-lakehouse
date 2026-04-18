@@ -13,13 +13,14 @@ Lifecycle contract:
 """
 
 import json
-import logging
 import os
 
 import websockets
 import websockets.exceptions
 
-logger = logging.getLogger(__name__)
+from producer.logger import get_logger
+
+logger = get_logger()
 
 # websockets.WebSocketClientProtocol is the correct type for websockets <13.0
 # Update to websockets.ClientConnection when upgrading past 13.0

@@ -18,7 +18,6 @@ import time
 import pika
 import pika.exceptions
 
-
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 EXCHANGE        = "crypto.trades.exchange"
