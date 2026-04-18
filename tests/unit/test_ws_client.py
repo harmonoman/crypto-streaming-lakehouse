@@ -135,7 +135,7 @@ async def test_listen_skips_invalid_json(caplog):
     mock_ws = make_mock_websocket(messages)
     client = make_client()
 
-    with caplog.at_level(logging.ERROR, logger="producer.ws_client"):
+    with caplog.at_level(logging.ERROR, logger="producer"):
         received = [msg async for msg in client.listen(mock_ws)]
 
     assert len(received) == 1
