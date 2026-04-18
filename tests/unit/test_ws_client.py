@@ -1,32 +1,43 @@
 """
 tests/unit/test_ws_client.py
 
-Unit tests for CoinbaseWebSocketClient.
-All tests use mocked WebSockets — no real network connections.
+Unit tests for CoinbaseWebSocketClient and exponential_backoff.
+All WebSocket tests use mocked connections — no real network.
 """
 
 import json
+import logging
 import pytest
 import websockets.exceptions
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
+
 from producer.ws_client import CoinbaseWebSocketClient
+from producer.utils import exponential_backoff
 
 
-# ── Fixtures ──────────────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def make_client(url="wss://fake.coinbase.com", product_id="BTC-USD"):
     return CoinbaseWebSocketClient(url=url, product_id=product_id)
 
 
 def make_mock_websocket(messages: list[str]) -> AsyncMock:
-    """Return a mock websocket that yields the given raw message strings."""
+    """
+    Return a mock websocket that async-iterates over the given raw strings.
+
+    Uses an async generator to satisfy 'async for raw in websocket'.
+    """
+    async def _aiter():
+        for msg in messages:
+            yield msg
+
     mock = AsyncMock()
-    mock.__aiter__ = MagicMock(return_value=iter(messages))
+    mock.__aiter__ = lambda self: _aiter()
     return mock
 
 
-# ── __init__ ──────────────────────────────────────────────────────────────────
+# ── CoinbaseWebSocketClient.__init__ ──────────────────────────────────────────
 
 def test_init_uses_explicit_url():
     client = CoinbaseWebSocketClient(url="wss://explicit.url")
@@ -50,7 +61,8 @@ def test_init_raises_if_no_url(monkeypatch):
 @pytest.mark.asyncio
 async def test_connect_returns_websocket():
     mock_ws = AsyncMock()
-    with patch("producer.ws_client.websockets.connect", return_value=mock_ws) as mock_connect:
+    # websockets.connect is itself a coroutine — patch as AsyncMock
+    with patch("producer.ws_client.websockets.connect", new_callable=AsyncMock, return_value=mock_ws) as mock_connect:
         client = make_client()
         result = await client.connect()
         mock_connect.assert_called_once_with(
@@ -64,7 +76,7 @@ async def test_connect_returns_websocket():
 
 @pytest.mark.asyncio
 async def test_connect_propagates_connection_error():
-    with patch("producer.ws_client.websockets.connect",
+    with patch("producer.ws_client.websockets.connect", new_callable=AsyncMock,
                side_effect=websockets.exceptions.WebSocketException("refused")):
         client = make_client()
         with pytest.raises(websockets.exceptions.WebSocketException):
@@ -124,15 +136,11 @@ async def test_listen_skips_invalid_json(caplog):
     mock_ws = make_mock_websocket(messages)
     client = make_client()
 
-    import logging
     with caplog.at_level(logging.ERROR, logger="producer.ws_client"):
         received = [msg async for msg in client.listen(mock_ws)]
 
-    # Valid message still yielded
     assert len(received) == 1
     assert received[0]["trade_id"] == "valid"
-
-    # Error was logged
     assert any("Non-JSON frame" in r.message for r in caplog.records)
 
 
@@ -147,7 +155,7 @@ async def test_listen_stops_on_empty_stream():
 
 @pytest.mark.asyncio
 async def test_listen_yields_all_message_types():
-    """listen() does not filter — all message types pass through."""
+    """listen() does not filter — all message types pass through to the caller."""
     messages = [
         json.dumps({"type": "subscriptions"}),
         json.dumps({"type": "heartbeat"}),
@@ -158,3 +166,58 @@ async def test_listen_yields_all_message_types():
 
     received = [msg async for msg in client.listen(mock_ws)]
     assert len(received) == 3
+
+
+# ── exponential_backoff() ─────────────────────────────────────────────────────
+
+def test_backoff_attempt_0_returns_base():
+    assert exponential_backoff(0) == 1
+
+
+def test_backoff_attempt_1_doubles():
+    assert exponential_backoff(1) == 2
+
+
+def test_backoff_attempt_2_doubles_again():
+    assert exponential_backoff(2) == 4
+
+
+def test_backoff_attempt_3():
+    assert exponential_backoff(3) == 8
+
+
+def test_backoff_capped_at_max():
+    # attempt=10 → 1 * 1024 → capped at 60
+    assert exponential_backoff(10) == 60
+
+
+def test_backoff_capped_when_delay_exceeds_max():
+    # attempt=6 → 1 * 64 = 64 → 64 > 60 → capped at 60
+    assert exponential_backoff(6) == 60
+
+
+def test_backoff_custom_base_attempt_0():
+    assert exponential_backoff(0, base=2) == 2
+
+
+def test_backoff_custom_base_attempt_1():
+    assert exponential_backoff(1, base=2) == 4
+
+
+def test_backoff_custom_base_attempt_2():
+    assert exponential_backoff(2, base=2) == 8
+
+
+def test_backoff_custom_max_delay():
+    # attempt=10 → 1024 → capped at custom max of 30
+    assert exponential_backoff(10, base=1, max_delay=30) == 30
+
+
+def test_backoff_returns_int():
+    result = exponential_backoff(3)
+    assert isinstance(result, int)
+
+
+def test_backoff_negative_attempt_raises():
+    with pytest.raises(ValueError, match="attempt must be >= 0"):
+        exponential_backoff(-1)

@@ -78,7 +78,7 @@ indent-style = "space"
 [tool.pytest.ini_options]
 testpaths    = ["tests"]
 asyncio_mode = "auto"
-addopts      = "--cov=. --cov-report=term-missing --cov-omit=tests/*,migrations/*,.venv/*"
+addopts      = "-v"
 
 # ── mypy ──────────────────────────────────────────────────────────────────────
 [tool.mypy]
