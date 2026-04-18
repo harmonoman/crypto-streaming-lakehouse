@@ -333,13 +333,18 @@ uv run pytest tests/unit/
 # Integration tests (requires docker compose up -d)
 uv run pytest tests/integration/
 
+# Full suite
+uv run pytest
+
 # Full suite with coverage report
-uv run pytest --cov --cov-report=html
+uv run pytest --cov=. --cov-report=html
 open htmlcov/index.html
 
 # dbt data quality tests (requires dbt run first)
 cd dbt && uv run dbt test
 ```
+
+> **Note:** Coverage flags are opt-in. Running `uv run pytest` without `--cov` is the default.
 
 ---
 
