@@ -18,7 +18,6 @@ from pathlib import Path
 
 import psycopg2
 
-
 # ── Config ────────────────────────────────────────────────────────────────────
 
 MIGRATIONS_DIR = Path(__file__).parent.parent / "migrations"
