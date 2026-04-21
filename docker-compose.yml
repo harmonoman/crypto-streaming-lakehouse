@@ -86,8 +86,31 @@ services:
       retries: 5
       start_period: 90s
 
-  # NOTE: producer and consumer services will be added in EPIC-2 and EPIC-3.
-  # Both must include:
+  # ── Producer (WebSocket → RabbitMQ) ─────────────────────────────
+  producer:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    container_name: crypto_producer
+    restart: unless-stopped
+    networks:
+      - crypto_net
+    environment:
+      AMQP_URL:              amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@crypto_rabbitmq:5672/
+      RABBITMQ_EXCHANGE:     ${RABBITMQ_EXCHANGE}
+      RABBITMQ_ROUTING_KEY:  ${RABBITMQ_ROUTING_KEY}
+      WEBSOCKET_URL:         ${WEBSOCKET_URL}
+      PRODUCT_ID:            ${PRODUCT_ID}
+      PRODUCER_METRICS_PORT: ${PRODUCER_METRICS_PORT:-8000}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    stop_grace_period: 35s
+
+  # NOTE: consumer service will be added in EPIC-3.
+  # Must include:
   #   depends_on:
   #     postgres:
   #       condition: service_healthy
