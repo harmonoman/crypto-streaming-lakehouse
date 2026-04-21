@@ -9,7 +9,7 @@ Usage:
     message = TradeMessage(**raw_dict)   # raises ValidationError if invalid
 """
 
-from datetime import UTC, datetime
+from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
@@ -48,4 +48,4 @@ class TradeMessage(BaseModel):
     def ensure_utc(cls, value: datetime) -> datetime:
         if value.tzinfo is None:
             raise ValueError("time must be timezone-aware (got naive datetime)")
-        return value.astimezone(UTC)
+        return value.astimezone(datetime.UTC)

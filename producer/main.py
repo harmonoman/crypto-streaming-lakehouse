@@ -44,6 +44,7 @@ from producer.ws_client import CoinbaseWebSocketClient
 logger = get_logger()
 
 DRAIN_TIMEOUT_SECONDS = 30
+MAX_RECONNECT_ATTEMPTS = 10
 
 # ── Shutdown flag ─────────────────────────────────────────────────────────────
 # Set to True when SIGTERM or SIGINT is received.
@@ -151,6 +152,13 @@ async def _stream(publisher: RabbitMQPublisher) -> None:
             )
             await asyncio.sleep(delay)
             attempt += 1
+
+            if attempt >= MAX_RECONNECT_ATTEMPTS:
+                logger.error(
+                    "Max reconnect attempts reached — shutting down",
+                    extra={"max_attempts": MAX_RECONNECT_ATTEMPTS},
+                )
+                break
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
