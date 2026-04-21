@@ -29,9 +29,9 @@ from collections import deque
 import pika
 import pika.exceptions
 
-from producer.logger import get_logger
+from shared.logger import get_logger
 
-logger = get_logger()
+logger = get_logger("producer")
 
 MAX_ATTEMPTS = 3
 RETRY_QUEUE_MAX = 1000

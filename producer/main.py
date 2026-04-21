@@ -29,7 +29,6 @@ import time
 
 from pydantic import ValidationError
 
-from producer.logger import get_logger
 from producer.metrics import (
     increment_invalid,
     increment_received,
@@ -40,8 +39,9 @@ from producer.publisher import RabbitMQPublisher
 from producer.schemas import TradeMessage
 from producer.utils import exponential_backoff
 from producer.ws_client import CoinbaseWebSocketClient
+from shared.logger import get_logger
 
-logger = get_logger()
+logger = get_logger("producer")
 
 DRAIN_TIMEOUT_SECONDS = 30
 MAX_RECONNECT_ATTEMPTS = 10
