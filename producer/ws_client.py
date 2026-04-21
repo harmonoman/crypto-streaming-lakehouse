@@ -18,9 +18,9 @@ import os
 import websockets
 import websockets.exceptions
 
-from producer.logger import get_logger
+from shared.logger import get_logger
 
-logger = get_logger()
+logger = get_logger("producer")
 
 # websockets.WebSocketClientProtocol is the correct type for websockets <13.0
 # Update to websockets.ClientConnection when upgrading past 13.0
