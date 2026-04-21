@@ -16,9 +16,9 @@ Usage:
 Metrics available at: http://localhost:{PRODUCER_METRICS_PORT}/metrics
 """
 
-import os
+from prometheus_client import Counter
 
-from prometheus_client import Counter, start_http_server
+from shared.metrics import start_metrics_server as _start_server
 
 # ── Counters ──────────────────────────────────────────────────────────────────
 # Module-level — defined once, shared across the process.
@@ -42,12 +42,9 @@ messages_invalid_total = Counter(
 
 # ── Server ────────────────────────────────────────────────────────────────────
 
-_server_started = False
-
-
 def start_metrics_server(port: int | None = None) -> None:
     """
-    Start the Prometheus HTTP server.
+    Start the Prometheus HTTP server for the producer on port 8000.
 
     Port is resolved in order:
       1. Explicit port argument
@@ -57,12 +54,11 @@ def start_metrics_server(port: int | None = None) -> None:
     Safe to call multiple times — only starts once.
     Runs in a background daemon thread; does not block the application.
     """
-    global _server_started
-    if _server_started:
-        return
-    port = port or int(os.environ.get("PRODUCER_METRICS_PORT", 8000))
-    start_http_server(port)
-    _server_started = True
+    _start_server(
+        port=port,
+        env_var="PRODUCER_METRICS_PORT",
+        default=8000,
+    )
 
 
 # ── Increment helpers ─────────────────────────────────────────────────────────
