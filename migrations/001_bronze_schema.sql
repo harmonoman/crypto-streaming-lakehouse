@@ -29,15 +29,11 @@ CREATE INDEX IF NOT EXISTS idx_raw_trades_payload
 
 -- Partial unique index on trade_id — enforces deduplication at DB level.
 --
--- IMPORTANT CONTRACT: any INSERT ... ON CONFLICT targeting this index MUST
--- include the matching WHERE clause, e.g.:
---
---   INSERT INTO bronze.raw_trades (payload)
---   VALUES (...)
---   ON CONFLICT (trade_id) WHERE trade_id IS NOT NULL DO NOTHING;
---
--- Without the WHERE predicate, Postgres raises:
---   "there is no unique or exclusion constraint matching the ON CONFLICT specification"
+-- NOTE: This partial index is superseded by 002_bronze_trade_id_index.sql,
+-- which drops it and replaces it with a full unique index. The full index
+-- allows the simpler consumer insert form:
+--   ON CONFLICT (trade_id) DO NOTHING
+-- rather than requiring the WHERE predicate on every INSERT.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_raw_trades_trade_id
     ON bronze.raw_trades (trade_id)
     WHERE trade_id IS NOT NULL;
