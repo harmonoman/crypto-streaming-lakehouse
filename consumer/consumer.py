@@ -27,6 +27,7 @@ import time
 
 import pika
 
+from consumer.metrics import processing_duration
 from shared.logger import get_logger
 
 logger = get_logger("consumer")
@@ -85,9 +86,11 @@ class TradeConsumer:
             # Only ACK after the DB insert succeeds.
             # If the process crashes between insert and ACK, RabbitMQ re-delivers
             # the message — the idempotent ON CONFLICT DO NOTHING insert handles it.
+            duration_s = time.monotonic() - start
+            processing_duration.observe(duration_s)
             channel.basic_ack(delivery_tag=method.delivery_tag)
 
-            latency_ms = (time.monotonic() - start) * 1000
+            latency_ms = duration_s * 1000
             logger.info(
                 "message_processed",
                 extra={
@@ -101,9 +104,11 @@ class TradeConsumer:
             # NACK with requeue=False — do NOT requeue.
             # requeue=True would cause an infinite retry loop for persistent failures.
             # The DLQ (configured on the queue) receives this message instead.
+            duration_s = time.monotonic() - start
+            processing_duration.observe(duration_s)
             channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
-            latency_ms = (time.monotonic() - start) * 1000
+            latency_ms = duration_s * 1000
             logger.error(
                 "message_processed",
                 extra={
