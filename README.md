@@ -96,12 +96,11 @@ cp .env.example .env
 
 Open `.env` and fill in the required values:
 ```
-POSTGRES_PASSWORD=yourpassword
-RABBITMQ_DEFAULT_PASS=yourpassword   # minimum 20 characters
+POSTGRES_PASSWORD=<choose-a-strong-password>        # minimum 12 characters
+RABBITMQ_DEFAULT_PASS=<choose-a-strong-password>    # minimum 20 characters
 
-# Also update the connection strings with the same password:
-DATABASE_URL=postgresql://crypto_user:yourpassword@host.docker.internal:5432/crypto_pipeline
-AMQP_URL=amqp://crypto_rabbit:yourpassword@host.docker.internal:5672/
+Then update `DATABASE_URL` and `AMQP_URL` in `.env` with the same password.
+See `.env.example` for the exact format of these connection strings.
 ```
 
 **2. Open in Dev Container**
@@ -129,7 +128,28 @@ python infra/migrate.py
 python infra/rabbitmq_setup.py
 ```
 
-**5. Start the pipeline**
+**5. dbt Setup**
+
+After cloning, create `~/.dbt/profiles.yml`:
+
+```yaml
+crypto_pipeline:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PG_HOST') }}"
+      port: "{{ env_var('PG_PORT') | int }}"
+      user: "{{ env_var('PG_USER') }}"
+      password: "{{ env_var('PG_PASSWORD') }}"
+      dbname: "{{ env_var('PG_DB') }}"
+      schema: bronze
+      threads: 4
+```
+
+Ensure the `PG_*` variables are set in your `.env` before running `dbt debug`.
+
+**6. Start the pipeline**
 ```bash
 # Terminal 1 — producer
 python -m producer.main
@@ -138,12 +158,12 @@ python -m producer.main
 python -m consumer.main
 ```
 
-**6. Run dbt transformations**
+**7. Run dbt transformations**
 ```bash
 cd dbt && dbt run
 ```
 
-**7. Export to lakehouse**
+**8. Export to lakehouse**
 ```bash
 python lakehouse/export.py
 ```

@@ -28,6 +28,7 @@ dependencies = [
   "prometheus-client>=0.19",
   # Data processing (Gold layer utilities)
   "pandas>=2.1",
+  "dbt-postgres>=1.10.0",
 ]
 
 # ── Dev dependencies (uv uses [dependency-groups], not optional-dependencies) ─
