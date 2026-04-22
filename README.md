@@ -361,6 +361,27 @@ Always commit `uv.lock` to version control.
 
 ---
 
+## ⚡ Performance
+
+Benchmark (1,000 rows × 3 averaged runs, local Postgres via Docker):
+
+| Strategy       | Avg Time (s) | Rows/sec |
+|----------------|--------------|----------|
+| Single Insert  | 1.364        | 733      |
+| Batch Insert   | 0.050        | 19,883   |
+
+Batch inserts are ~27x faster than single-row inserts.
+
+Each single insert requires a full DB round trip — open transaction, send row,
+commit, receive confirmation — repeated 1,000 times. Batch insert performs one
+round trip for all 1,000 rows. At 500+ messages/second, individual inserts would
+require 500+ round trips per second; batching reduces that to 2–3.
+
+To run the benchmark:
+- `python tests/benchmark/test_insert_perf.py`
+
+---
+
 ## 🗺️ Project Roadmap
 
 ### Phase 1 — Infrastructure Setup
