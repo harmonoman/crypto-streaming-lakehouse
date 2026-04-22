@@ -108,11 +108,31 @@ services:
       rabbitmq:
         condition: service_healthy
     stop_grace_period: 35s
+    command: ["python", "-m", "producer.main"]
 
-  # NOTE: consumer service will be added in EPIC-3.
-  # Must include:
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     rabbitmq:
-  #       condition: service_healthy
+# ── Consumer (RabbitMQ → PostgreSQL Bronze) ──────────────────────
+  consumer:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    container_name: crypto_consumer
+    restart: unless-stopped
+    networks:
+      - crypto_net
+    environment:
+      AMQP_URL:              amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@crypto_rabbitmq:5672/
+      RABBITMQ_QUEUE:        ${RABBITMQ_QUEUE}
+      DATABASE_URL:          postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@crypto_postgres:5432/${POSTGRES_DB}
+      CONSUMER_PREFETCH:     ${CONSUMER_PREFETCH:-100}
+      BATCH_SIZE:            ${BATCH_SIZE:-200}
+      BATCH_TIMEOUT_MS:      ${BATCH_TIMEOUT_MS:-2000}
+      CONSUMER_METRICS_PORT: ${CONSUMER_METRICS_PORT:-8001}
+    ports:
+      - "127.0.0.1:8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    stop_grace_period: 35s
+    command: ["python", "-m", "consumer.main"]
