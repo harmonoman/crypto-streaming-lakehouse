@@ -81,7 +81,7 @@ class TradeConsumer:
             message = json.loads(body)
             trade_id = message.get("trade_id")
 
-            self.repository.insert(message)
+            self.repository.insert_one(message)
 
             # Only ACK after the DB insert succeeds.
             # If the process crashes between insert and ACK, RabbitMQ re-delivers

@@ -127,6 +127,10 @@ class BatchBuffer:
                 self._timer.cancel()
                 self._timer = None
 
+    def insert_one(self, message: dict) -> None:
+        """Thin wrapper so BatchBuffer can be used as a drop-in for repository."""
+        self.add(message)
+
     # ── Timer management ──────────────────────────────────────────────────────
 
     def _start_timer(self) -> None:
