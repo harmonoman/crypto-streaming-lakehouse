@@ -11,7 +11,7 @@ Usage:
     processing_duration.observe(duration_s)   # call per message
 """
 
-from prometheus_client import Histogram
+from prometheus_client import Counter, Histogram
 
 from shared.metrics import start_metrics_server as _start_server
 
@@ -24,6 +24,15 @@ processing_duration = Histogram(
     "consumer_processing_duration_seconds",
     "Time spent processing a message from receipt to ACK or NACK",
     buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0],
+)
+
+
+# ── Counter ───────────────────────────────────────────────────────────────────
+# Incremented when ON CONFLICT DO NOTHING silently skips a duplicate trade_id.
+
+duplicates_skipped_total = Counter(
+    "duplicates_skipped_total",
+    "Total number of duplicate trade inserts silently skipped by ON CONFLICT DO NOTHING",
 )
 
 
