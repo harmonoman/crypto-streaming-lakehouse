@@ -128,26 +128,16 @@ python infra/migrate.py
 python infra/rabbitmq_setup.py
 ```
 
-**5. dbt Setup**
+**5. Configure dbt**
 
-After cloning, create `~/.dbt/profiles.yml`:
+`profiles.yml` is committed to the repo at `dbt/profiles.yml` and reads all connection
+details from environment variables. No manual profile creation needed — just ensure
+the `PG_*` variables and `DBT_PROFILES_DIR` are set in your `.env` (they are included
+in `.env.example`), then verify:
 
-```yaml
-crypto_pipeline:
-  target: dev
-  outputs:
-    dev:
-      type: postgres
-      host: "{{ env_var('PG_HOST') }}"
-      port: "{{ env_var('PG_PORT') | int }}"
-      user: "{{ env_var('PG_USER') }}"
-      password: "{{ env_var('PG_PASSWORD') }}"
-      dbname: "{{ env_var('PG_DB') }}"
-      schema: bronze
-      threads: 4
+```bash
+cd dbt && dbt debug
 ```
-
-Ensure the `PG_*` variables are set in your `.env` before running `dbt debug`.
 
 **6. Start the pipeline**
 ```bash
@@ -239,12 +229,15 @@ crypto-streaming-pipeline/
 │   └── rabbitmq_setup.py       # Queue/exchange bootstrap
 │
 ├── migrations/                 # Numbered SQL migration files
-│   └── 001_bronze_schema.sql
+│   ├── 001_bronze_schema.sql
+│   └── 002_bronze_trade_id_index.sql
 │
 ├── dbt/                        # dbt transformation project
 │   ├── dbt_project.yml
-│   ├── profiles.yml
+│   ├── profiles.yml            # env-var driven — safe to commit
 │   └── models/
+│       ├── staging/
+│       │   └── sources.yml     # bronze source + freshness config
 │       ├── silver/
 │       └── gold/
 │
@@ -339,6 +332,12 @@ Messages published to `crypto.trades.exchange` with routing key `trades.raw`. Co
 | `CONSUMER_PREFETCH` | Consumer | No | RabbitMQ prefetch count (default: `100`) |
 | `BATCH_SIZE` | Consumer | No | Insert batch size (default: `200`) |
 | `BATCH_TIMEOUT_MS` | Consumer | No | Batch flush timeout (default: `2000`) |
+| `PG_HOST` | dbt | Yes | Postgres host for dbt connection |
+| `PG_PORT` | dbt | Yes | Postgres port for dbt connection |
+| `PG_USER` | dbt | Yes | Postgres user for dbt connection |
+| `PG_PASSWORD` | dbt | **Yes — no default** | Postgres password for dbt connection |
+| `PG_DB` | dbt | Yes | Postgres database for dbt connection |
+| `DBT_PROFILES_DIR` | dbt | Yes | Path to dbt profiles directory (default: `./dbt`) |
 
 See `.env.example` for the complete list with defaults.
 
