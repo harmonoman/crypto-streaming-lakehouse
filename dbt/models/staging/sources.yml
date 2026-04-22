@@ -1,0 +1,19 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: >
+      Raw ingestion layer. Contains unprocessed trade events exactly as received
+      from the Coinbase WebSocket, stored as JSONB payloads.
+    schema: bronze
+
+    tables:
+      - name: raw_trades
+        description: >
+          One row per trade event received from RabbitMQ. The payload column
+          contains the full Coinbase message. trade_id is a generated column
+          extracted from the payload for deduplication.
+        loaded_at_field: received_at
+        freshness:
+          warn_after:  {count: 30, period: minute}
+          error_after: {count: 2,  period: hour}
