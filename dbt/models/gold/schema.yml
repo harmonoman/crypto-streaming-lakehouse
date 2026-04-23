@@ -1,0 +1,46 @@
+version: 2
+
+models:
+  - name: gold_vwap_1min
+    description: >
+      1-minute VWAP aggregation windows computed from silver.stg_trades.
+      Each row summarises one minute of BTC-USD trading activity.
+
+    tests:
+      - vwap_bounds:
+          arguments:
+            vwap_column: vwap
+            high_column: high_price
+            low_column: low_price
+
+    columns:
+      - name: window_start
+        description: Start of the 1-minute trading window (UTC).
+        tests:
+          - unique
+          - not_null
+
+      - name: vwap
+        description: Volume Weighted Average Price for the window.
+        tests:
+          - not_null
+
+      - name: total_volume
+        description: Total BTC volume traded in the window.
+        tests:
+          - not_null
+
+      - name: trade_count
+        description: Number of individual trades in the window.
+        tests:
+          - not_null
+
+      - name: high_price
+        description: Highest execution price in the window.
+        tests:
+          - not_null
+
+      - name: low_price
+        description: Lowest execution price in the window.
+        tests:
+          - not_null
