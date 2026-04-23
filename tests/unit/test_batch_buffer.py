@@ -64,6 +64,5 @@ def test_flush_empty_buffer(mock_repo):
 def test_stop_cancels_timer(mock_repo):
     buf = BatchBuffer(mock_repo, batch_size=200, timeout_ms=100)
     buf.stop()
-    import time
     time.sleep(0.3)
     mock_repo.insert_batch.assert_not_called()

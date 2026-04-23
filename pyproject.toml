@@ -29,6 +29,8 @@ dependencies = [
   # Data processing (Gold layer utilities)
   "pandas>=2.1",
   "dbt-postgres>=1.10.0",
+  "duckdb>=1.5.2",
+  "pyarrow>=24.0.0",
 ]
 
 # ── Dev dependencies (uv uses [dependency-groups], not optional-dependencies) ─
