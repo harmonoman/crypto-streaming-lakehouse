@@ -209,3 +209,6 @@ __marimo__/
 # Metabase
 metabase-data/*
 !metabase-data/.gitkeep
+
+# Lakehouse data — generated at runtime
+data/
