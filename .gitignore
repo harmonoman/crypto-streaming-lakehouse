@@ -212,3 +212,4 @@ metabase-data/*
 
 # Lakehouse data — generated at runtime
 data/
+gold/
