@@ -209,3 +209,5 @@ __marimo__/
 # Metabase
 metabase-data/*
 !metabase-data/.gitkeep
+data/
+gold/
