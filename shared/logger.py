@@ -1,6 +1,7 @@
 # shared/logger.py
 
 import logging
+import time
 
 from pythonjsonlogger.json import JsonFormatter
 
@@ -17,24 +18,21 @@ class _ServiceFilter(logging.Filter):
 
 def get_logger(service: str) -> logging.Logger:
     logger = logging.getLogger(service)
-
     if logger.handlers:
         return logger
-
     logger.setLevel(logging.INFO)
-
     handler = logging.StreamHandler()
-    handler.setFormatter(
-        JsonFormatter(
-            "%(asctime)s %(levelname)s %(name)s %(message)s %(service)s",
-            rename_fields={
-                "asctime":   "timestamp",
-                "levelname": "level",
-                "name":      "logger",
-            },
-        )
+    formatter = JsonFormatter(
+        "%(asctime)s %(levelname)s %(name)s %(message)s %(service)s",
+        rename_fields={
+            "asctime":   "timestamp",
+            "levelname": "level",
+            "name":      "logger",
+        },
+        datefmt="%Y-%m-%dT%H:%M:%SZ",
     )
+    formatter.converter = time.gmtime  # Force UTC
+    handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.addFilter(_ServiceFilter(service=service))
-
     return logger
