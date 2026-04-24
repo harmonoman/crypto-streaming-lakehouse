@@ -141,22 +141,24 @@ cd dbt && dbt debug
 
 **6. Start the pipeline**
 ```bash
-# Terminal 1 — producer
+# Terminal 1 — producer (streams live BTC-USD trades from Coinbase)
 python -m producer.main
 
-# Terminal 2 — consumer
+# Terminal 2 — consumer (writes trades to Postgres Bronze)
 python -m consumer.main
 ```
 
 **7. Run dbt transformations**
 ```bash
-cd dbt && dbt run
+cd dbt && dbt run && dbt test && dbt source freshness && cd ..
 ```
 
 **8. Export to lakehouse**
 ```bash
 python lakehouse/export.py
 ```
+
+Exports Gold tables from Postgres to partitioned Parquet files, updates the high-water mark, and refreshes DuckDB views. Run after each `dbt run`.
 
 ---
 
