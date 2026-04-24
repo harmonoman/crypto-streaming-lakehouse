@@ -15,7 +15,7 @@ DuckDB file at that path as if it were a local file.
 ```yaml
 # docker-compose.yml — metabase service
 volumes:
-  - ./data:/data
+  - lakehouse_data:/data
 ```
 
 ---
@@ -52,3 +52,29 @@ Once connected, the following views are available:
 - Run `python lakehouse/export.py` after each `dbt run` to refresh the data
 - The DuckDB file is recreated automatically if deleted — just re-run `python lakehouse/export.py`
 - The `./data` directory is gitignored — it contains generated runtime files only
+
+---
+
+## DuckDB Driver
+
+The standard Metabase image does not include the DuckDB driver. This project
+uses a custom Dockerfile (`docker/metabase.Dockerfile`) based on
+`eclipse-temurin:21-jre` (Debian) which pre-installs the driver from:
+https://github.com/motherduckdb/metabase_duckdb_driver/releases/download/1.5.2.0/duckdb.metabase-driver.jar
+
+The driver is baked into the image at build time — no manual installation needed.
+
+---
+
+## Dashboard Reference Export
+
+A reference copy of the dashboard configuration is saved at:
+metabase/dashboard_export.json
+
+This file was exported via the Metabase API and contains the dashboard layout
+and chart configurations for the **BTC-USD Live Dashboard**.
+
+> **Note:** Metabase OSS does not support JSON dashboard import.
+> To recreate the dashboard in a fresh instance, use the SQL queries in
+> `docs/metabase_queries.sql` to manually recreate the 4 questions, then
+> add them to a new dashboard.

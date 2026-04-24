@@ -1,0 +1,570 @@
+{
+  "description": null,
+  "archived": false,
+  "collection_position": null,
+  "dashcards": [
+    {
+      "size_x": 12,
+      "dashboard_tab_id": null,
+      "series": [],
+      "action_id": null,
+      "collection_authority_level": null,
+      "card": {
+        "description": null,
+        "archived": false,
+        "collection_position": null,
+        "table_id": null,
+        "result_metadata": [
+          {
+            "display_name": "window_start",
+            "field_ref": [
+              "field",
+              "window_start",
+              {
+                "base-type": "type/DateTimeWithTZ"
+              }
+            ],
+            "name": "window_start",
+            "base_type": "type/DateTimeWithTZ",
+            "effective_type": "type/DateTimeWithTZ",
+            "semantic_type": "type/CreationTimestamp",
+            "fingerprint": {
+              "global": {
+                "distinct-count": 5,
+                "nil%": 0.0
+              },
+              "type": {
+                "type/DateTime": {
+                  "earliest": "2026-04-24T16:19:00Z",
+                  "latest": "2026-04-24T16:23:00Z"
+                }
+              }
+            }
+          },
+          {
+            "display_name": "vwap",
+            "field_ref": [
+              "field",
+              "vwap",
+              {
+                "base-type": "type/Float"
+              }
+            ],
+            "name": "vwap",
+            "base_type": "type/Float",
+            "effective_type": "type/Float",
+            "semantic_type": null,
+            "fingerprint": {
+              "global": {
+                "distinct-count": 5,
+                "nil%": 0.0
+              },
+              "type": {
+                "type/Number": {
+                  "min": 77677.52172776665,
+                  "q1": 77696.30209422525,
+                  "q3": 77735.24559106052,
+                  "max": 77737.35452015427,
+                  "sd": 24.666399225349224,
+                  "avg": 77713.660215799
+                }
+              }
+            }
+          }
+        ],
+        "initially_published_at": null,
+        "can_write": true,
+        "database_id": 2,
+        "enable_embedding": false,
+        "collection_id": null,
+        "query_type": "native",
+        "name": "BTC-USD VWAP per Minute",
+        "type": "question",
+        "query_average_duration": 77,
+        "creator_id": 1,
+        "moderation_reviews": [],
+        "updated_at": "2026-04-24T22:14:00.81514Z",
+        "made_public_by_id": null,
+        "embedding_params": null,
+        "cache_ttl": null,
+        "dataset_query": {
+          "database": 2,
+          "type": "native",
+          "native": {
+            "template-tags": {},
+            "query": "SELECT window_start, vwap\nFROM vw_vwap_1min\nORDER BY window_start DESC\nLIMIT 5;"
+          }
+        },
+        "id": 1,
+        "parameter_mappings": [],
+        "display": "line",
+        "entity_id": "sN9lfimjBt1ApZO2HxQFU",
+        "collection_preview": true,
+        "visualization_settings": {
+          "graph.dimensions": [
+            "window_start"
+          ],
+          "graph.metrics": [
+            "vwap"
+          ]
+        },
+        "metabase_version": "v0.49.6 (5abf130)",
+        "parameters": [],
+        "dataset": false,
+        "created_at": "2026-04-24T22:01:02.959305Z",
+        "public_uuid": null
+      },
+      "updated_at": "2026-04-24T22:02:43.424173Z",
+      "col": 0,
+      "id": 1,
+      "parameter_mappings": [],
+      "card_id": 1,
+      "entity_id": "yzp4fzZ0yNApaa1ZeE_ja",
+      "visualization_settings": {},
+      "size_y": 6,
+      "dashboard_id": 1,
+      "created_at": "2026-04-24T22:02:43.424173Z",
+      "row": 0
+    },
+    {
+      "size_x": 12,
+      "dashboard_tab_id": null,
+      "series": [],
+      "action_id": null,
+      "collection_authority_level": null,
+      "card": {
+        "description": null,
+        "archived": false,
+        "collection_position": null,
+        "table_id": null,
+        "result_metadata": [
+          {
+            "display_name": "window_start",
+            "field_ref": [
+              "field",
+              "window_start",
+              {
+                "base-type": "type/DateTimeWithTZ"
+              }
+            ],
+            "name": "window_start",
+            "base_type": "type/DateTimeWithTZ",
+            "effective_type": "type/DateTimeWithTZ",
+            "semantic_type": "type/CreationTimestamp",
+            "fingerprint": {
+              "global": {
+                "distinct-count": 5,
+                "nil%": 0.0
+              },
+              "type": {
+                "type/DateTime": {
+                  "earliest": "2026-04-24T16:19:00Z",
+                  "latest": "2026-04-24T16:23:00Z"
+                }
+              }
+            }
+          },
+          {
+            "display_name": "total_volume",
+            "field_ref": [
+              "field",
+              "total_volume",
+              {
+                "base-type": "type/Float"
+              }
+            ],
+            "name": "total_volume",
+            "base_type": "type/Float",
+            "effective_type": "type/Float",
+            "semantic_type": null,
+            "fingerprint": {
+              "global": {
+                "distinct-count": 5,
+                "nil%": 0.0
+              },
+              "type": {
+                "type/Number": {
+                  "min": 0.00057233,
+                  "q1": 2.1092798825,
+                  "q3": 4.811791195,
+                  "max": 5.4076633,
+                  "sd": 2.07841865837205,
+                  "avg": 3.241577538
+                }
+              }
+            }
+          }
+        ],
+        "initially_published_at": null,
+        "can_write": true,
+        "database_id": 2,
+        "enable_embedding": false,
+        "collection_id": null,
+        "query_type": "native",
+        "name": "BTC-USD Trade Volume per Minute",
+        "type": "question",
+        "query_average_duration": 62,
+        "creator_id": 1,
+        "moderation_reviews": [],
+        "updated_at": "2026-04-24T22:14:00.814792Z",
+        "made_public_by_id": null,
+        "embedding_params": null,
+        "cache_ttl": null,
+        "dataset_query": {
+          "database": 2,
+          "type": "native",
+          "native": {
+            "template-tags": {},
+            "query": "SELECT window_start, total_volume\nFROM vw_vwap_1min\nORDER BY window_start DESC\nLIMIT 5;"
+          }
+        },
+        "id": 3,
+        "parameter_mappings": [],
+        "display": "line",
+        "entity_id": "b4OW45UC7drFhQfpF3eDO",
+        "collection_preview": true,
+        "visualization_settings": {
+          "graph.dimensions": [
+            "window_start"
+          ],
+          "graph.metrics": [
+            "total_volume"
+          ]
+        },
+        "metabase_version": "v0.49.6 (5abf130)",
+        "parameters": [],
+        "dataset": false,
+        "created_at": "2026-04-24T22:05:10.267619Z",
+        "public_uuid": null
+      },
+      "updated_at": "2026-04-24T22:05:16.31241Z",
+      "col": 12,
+      "id": 2,
+      "parameter_mappings": [],
+      "card_id": 3,
+      "entity_id": "fvn0L22t6iCJaCOcnP34T",
+      "visualization_settings": {},
+      "size_y": 6,
+      "dashboard_id": 1,
+      "created_at": "2026-04-24T22:05:16.31241Z",
+      "row": 0
+    },
+    {
+      "size_x": 12,
+      "dashboard_tab_id": null,
+      "series": [],
+      "action_id": null,
+      "collection_authority_level": null,
+      "card": {
+        "description": null,
+        "archived": false,
+        "collection_position": null,
+        "table_id": null,
+        "result_metadata": [
+          {
+            "display_name": "window_start",
+            "field_ref": [
+              "field",
+              "window_start",
+              {
+                "base-type": "type/DateTimeWithTZ"
+              }
+            ],
+            "name": "window_start",
+            "base_type": "type/DateTimeWithTZ",
+            "effective_type": "type/DateTimeWithTZ",
+            "semantic_type": "type/CreationTimestamp",
+            "fingerprint": {
+              "global": {
+                "distinct-count": 5,
+                "nil%": 0.0
+              },
+              "type": {
+                "type/DateTime": {
+                  "earliest": "2026-04-24T16:19:00Z",
+                  "latest": "2026-04-24T16:23:00Z"
+                }
+              }
+            }
+          },
+          {
+            "display_name": "buy_volume_pct",
+            "field_ref": [
+              "field",
+              "buy_volume_pct",
+              {
+                "base-type": "type/Float"
+              }
+            ],
+            "name": "buy_volume_pct",
+            "base_type": "type/Float",
+            "effective_type": "type/Float",
+            "semantic_type": null,
+            "fingerprint": {
+              "global": {
+                "distinct-count": 5,
+                "nil%": 0.0
+              },
+              "type": {
+                "type/Number": {
+                  "min": 0.0,
+                  "q1": 22.57721390481762,
+                  "q3": 58.10700516758369,
+                  "max": 64.3605222762222,
+                  "sd": 25.22700683064874,
+                  "avg": 38.624727492826175
+                }
+              }
+            }
+          },
+          {
+            "display_name": "sell_volume_pct",
+            "field_ref": [
+              "field",
+              "sell_volume_pct",
+              {
+                "base-type": "type/Float"
+              }
+            ],
+            "name": "sell_volume_pct",
+            "base_type": "type/Float",
+            "effective_type": "type/Float",
+            "semantic_type": null,
+            "fingerprint": {
+              "global": {
+                "distinct-count": 5,
+                "nil%": 0.0
+              },
+              "type": {
+                "type/Number": {
+                  "min": 35.6394777237778,
+                  "q1": 41.89299483241631,
+                  "q3": 77.42278609518239,
+                  "max": 100.0,
+                  "sd": 25.22700683064874,
+                  "avg": 61.375272507173825
+                }
+              }
+            }
+          }
+        ],
+        "initially_published_at": null,
+        "can_write": true,
+        "database_id": 2,
+        "enable_embedding": false,
+        "collection_id": null,
+        "query_type": "native",
+        "name": "BTC-USD Buy vs Sell Pressure",
+        "type": "question",
+        "query_average_duration": 60,
+        "creator_id": 1,
+        "moderation_reviews": [],
+        "updated_at": "2026-04-24T22:14:00.822304Z",
+        "made_public_by_id": null,
+        "embedding_params": null,
+        "cache_ttl": null,
+        "dataset_query": {
+          "database": 2,
+          "type": "native",
+          "native": {
+            "template-tags": {},
+            "query": "SELECT window_start, buy_volume_pct, (100 - buy_volume_pct) AS sell_volume_pct\nFROM vw_trade_stats_1min\nORDER BY window_start DESC\nLIMIT 5;"
+          }
+        },
+        "id": 4,
+        "parameter_mappings": [],
+        "display": "line",
+        "entity_id": "9GXZm59QgZAg_ORYm826z",
+        "collection_preview": true,
+        "visualization_settings": {
+          "graph.dimensions": [
+            "window_start"
+          ],
+          "graph.metrics": [
+            "buy_volume_pct",
+            "sell_volume_pct"
+          ]
+        },
+        "metabase_version": "v0.49.6 (5abf130)",
+        "parameters": [],
+        "dataset": false,
+        "created_at": "2026-04-24T22:06:59.965006Z",
+        "public_uuid": null
+      },
+      "updated_at": "2026-04-24T22:07:04.483709Z",
+      "col": 0,
+      "id": 3,
+      "parameter_mappings": [],
+      "card_id": 4,
+      "entity_id": "YM-BaP_Ky--oaqQYF-slX",
+      "visualization_settings": {},
+      "size_y": 6,
+      "dashboard_id": 1,
+      "created_at": "2026-04-24T22:07:04.483709Z",
+      "row": 6
+    },
+    {
+      "size_x": 12,
+      "dashboard_tab_id": null,
+      "series": [],
+      "action_id": null,
+      "collection_authority_level": null,
+      "card": {
+        "description": null,
+        "archived": false,
+        "collection_position": null,
+        "table_id": null,
+        "result_metadata": [
+          {
+            "display_name": "window_start",
+            "field_ref": [
+              "field",
+              "window_start",
+              {
+                "base-type": "type/DateTimeWithTZ"
+              }
+            ],
+            "name": "window_start",
+            "base_type": "type/DateTimeWithTZ",
+            "effective_type": "type/DateTimeWithTZ",
+            "semantic_type": "type/CreationTimestamp",
+            "fingerprint": {
+              "global": {
+                "distinct-count": 5,
+                "nil%": 0.0
+              },
+              "type": {
+                "type/DateTime": {
+                  "earliest": "2026-04-24T16:19:00Z",
+                  "latest": "2026-04-24T16:23:00Z"
+                }
+              }
+            }
+          },
+          {
+            "display_name": "volatility",
+            "field_ref": [
+              "field",
+              "volatility",
+              {
+                "base-type": "type/Float"
+              }
+            ],
+            "name": "volatility",
+            "base_type": "type/Float",
+            "effective_type": "type/Float",
+            "semantic_type": null,
+            "fingerprint": {
+              "global": {
+                "distinct-count": 5,
+                "nil%": 0.2
+              },
+              "type": {
+                "type/Number": {
+                  "min": 5.737146335835539,
+                  "q1": 8.64489454358741,
+                  "q3": 14.488805173488384,
+                  "max": 17.280963192184252,
+                  "sd": 4.713582626565251,
+                  "avg": 11.566849858537898
+                }
+              }
+            }
+          }
+        ],
+        "initially_published_at": null,
+        "can_write": true,
+        "database_id": 2,
+        "enable_embedding": false,
+        "collection_id": null,
+        "query_type": "native",
+        "name": "BTC-USD Price Volatility",
+        "type": "question",
+        "query_average_duration": 39,
+        "creator_id": 1,
+        "moderation_reviews": [],
+        "updated_at": "2026-04-24T22:14:00.833494Z",
+        "made_public_by_id": null,
+        "embedding_params": null,
+        "cache_ttl": null,
+        "dataset_query": {
+          "database": 2,
+          "type": "native",
+          "native": {
+            "template-tags": {},
+            "query": "SELECT window_start, volatility\nFROM vw_trade_stats_1min\nORDER BY window_start DESC\nLIMIT 5;"
+          }
+        },
+        "id": 5,
+        "parameter_mappings": [],
+        "display": "line",
+        "entity_id": "9Ag8aAOmINH8WRbuugGC_",
+        "collection_preview": true,
+        "visualization_settings": {
+          "graph.dimensions": [
+            "window_start"
+          ],
+          "graph.metrics": [
+            "volatility"
+          ]
+        },
+        "metabase_version": "v0.49.6 (5abf130)",
+        "parameters": [],
+        "dataset": false,
+        "created_at": "2026-04-24T22:07:48.708338Z",
+        "public_uuid": null
+      },
+      "updated_at": "2026-04-24T22:14:04.176772Z",
+      "col": 12,
+      "id": 4,
+      "parameter_mappings": [],
+      "card_id": 5,
+      "entity_id": "OOwqvfdo0UFaWwlKQ3qs4",
+      "visualization_settings": {},
+      "size_y": 6,
+      "dashboard_id": 1,
+      "created_at": "2026-04-24T22:14:04.176772Z",
+      "row": 6
+    }
+  ],
+  "param_values": null,
+  "initially_published_at": null,
+  "can_write": true,
+  "tabs": [],
+  "enable_embedding": false,
+  "collection_id": null,
+  "show_in_getting_started": false,
+  "name": "BTC-USD Live Dashboard",
+  "width": "fixed",
+  "caveats": null,
+  "collection_authority_level": null,
+  "creator_id": 1,
+  "updated_at": "2026-04-24T22:14:04.176772Z",
+  "made_public_by_id": null,
+  "embedding_params": null,
+  "cache_ttl": null,
+  "id": 1,
+  "position": null,
+  "entity_id": "4gd7NWHkIwothE-eilioF",
+  "param_fields": null,
+  "last-edit-info": {
+    "id": 1,
+    "email": "vovoclock@gmail.com",
+    "first_name": "Mark",
+    "last_name": "Bond",
+    "timestamp": "2026-04-24T22:14:04.207728Z"
+  },
+  "collection": {
+    "metabase.models.collection.root/is-root?": true,
+    "authority_level": null,
+    "name": "Our analytics",
+    "is_personal": false,
+    "id": "root",
+    "can_write": true
+  },
+  "parameters": [],
+  "auto_apply_filters": true,
+  "created_at": "2026-04-24T22:02:07.57023Z",
+  "public_uuid": null,
+  "points_of_interest": null
+}

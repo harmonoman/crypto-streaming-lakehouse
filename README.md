@@ -117,6 +117,13 @@ VS Code will build the container image and install all Python dependencies autom
 docker compose up -d
 ```
 
+This starts:
+- **Postgres** — Bronze/Silver/Gold data storage
+- **RabbitMQ** — message queue between producer and consumer
+- **Metabase** — BI dashboard at http://localhost:3000 (DuckDB driver pre-installed)
+
+See `docs/metabase_setup.md` for connecting Metabase to the DuckDB lakehouse.
+
 Verify all services are healthy before proceeding:
 ```bash
 docker compose ps
