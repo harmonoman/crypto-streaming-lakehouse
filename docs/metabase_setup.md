@@ -49,7 +49,12 @@ Once connected, the following views are available:
 
 ## Notes
 
-- Run `python lakehouse/export.py` after each `dbt run` to refresh the data
+- Run the following after each `dbt run` to refresh Metabase data:
+```bash
+  python lakehouse/export.py
+  docker cp data/crypto_lakehouse.duckdb crypto_metabase:/data/crypto_lakehouse.duckdb
+```
+  Then in Metabase: **Admin → Databases → Crypto Lakehouse → Sync database schema now**
 - The DuckDB file is recreated automatically if deleted — just re-run `python lakehouse/export.py`
 - The `./data` directory is gitignored — it contains generated runtime files only
 
@@ -63,6 +68,24 @@ uses a custom Dockerfile (`docker/metabase.Dockerfile`) based on
 https://github.com/motherduckdb/metabase_duckdb_driver/releases/download/1.5.2.0/duckdb.metabase-driver.jar
 
 The driver is baked into the image at build time — no manual installation needed.
+
+---
+
+## ⚠️ After Container Restart
+
+If the Metabase container is recreated, the DuckDB views inside the container
+must be re-registered. Run:
+
+```bash
+docker exec crypto_metabase python3 -c "
+import duckdb
+conn = duckdb.connect('/data/crypto_lakehouse.duckdb')
+conn.execute(\"CREATE OR REPLACE VIEW vw_vwap_1min AS SELECT * FROM read_parquet('/data/gold/gold_vwap_1min/**/*.parquet', union_by_name=true)\")
+conn.execute(\"CREATE OR REPLACE VIEW vw_trade_stats_1min AS SELECT * FROM read_parquet('/data/gold/gold_trade_stats_1min/**/*.parquet', union_by_name=true)\")
+conn.close()
+"
+docker cp data/crypto_lakehouse.duckdb crypto_metabase:/data/crypto_lakehouse.duckdb
+```
 
 ---
 
