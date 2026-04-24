@@ -73,6 +73,7 @@ services:
       JAVA_OPTS: "-Xmx512m"
     volumes:
       - metabase_data:/metabase-data
+      - ./data:/data
     # Metabase only depends on Postgres (metadata store).
     # No dependency on RabbitMQ — they are independent services.
     depends_on:
