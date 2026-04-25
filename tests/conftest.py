@@ -13,12 +13,14 @@ Scope decisions:
 
 import os
 import pathlib
+import sys
+from pathlib import Path
 
 import pika
 import psycopg2
 import pytest
 
-
+sys.path.insert(0, str(Path(__file__).parent.parent / "dags"))
 @pytest.fixture(scope="session")
 def project_root():
     """Return the project root path for tests that need to reference files."""

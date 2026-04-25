@@ -27,21 +27,12 @@ from datetime import UTC, datetime, timedelta
 from airflow import DAG  # type: ignore[import]
 from airflow.operators.bash import BashOperator  # type: ignore[import]
 from airflow.operators.python import PythonOperator  # type: ignore[import]
+from metabase_sync import sync_metabase_schema  # type: ignore[import]
 
 from lakehouse.export import run_export
 from shared.logger import get_logger
 
 logger = get_logger("airflow")
-
-# ── Stub for sync_metabase — implemented in AIRFLOW-002-T2 ───────────────────
-
-def sync_metabase_schema() -> None:
-    """
-    Trigger Metabase to re-sync the DuckDB schema after export.
-    Full implementation in AIRFLOW-002-T2.
-    """
-    logger.info("sync_metabase_schema: stub — implemented in AIRFLOW-002-T2")
-
 
 # ── Default args ──────────────────────────────────────────────────────────────
 
