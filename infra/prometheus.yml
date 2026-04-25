@@ -1,0 +1,27 @@
+# infra/prometheus.yml
+#
+# Prometheus scrape configuration for the crypto streaming pipeline.
+#
+# Why 15s scrape interval?
+#   Short enough to detect issues quickly, long enough to avoid
+#   overwhelming services with health check requests.
+#
+# Why static_configs?
+#   Service discovery (Kubernetes, Consul) adds complexity we don't need
+#   for MVP. Static targets are explicit, readable, and easy to debug.
+
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'producer'
+    static_configs:
+      - targets: ['producer:8000']
+
+  - job_name: 'consumer'
+    static_configs:
+      - targets: ['consumer:8001']
+
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']
