@@ -46,9 +46,11 @@ services:
     ports:
       - "127.0.0.1:5672:5672"
       - "127.0.0.1:15672:15672"
+      - "127.0.0.1:15692:15692"
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?RABBITMQ_DEFAULT_USER is required}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?RABBITMQ_DEFAULT_PASS is required}
+      RABBITMQ_DEFAULT_PLUGINS: "rabbitmq_management rabbitmq_prometheus"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq/mnesia
     healthcheck:
