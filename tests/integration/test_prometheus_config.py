@@ -64,3 +64,22 @@ def test_prometheus_on_correct_network():
     compose = yaml.safe_load(COMPOSE_PATH.read_text())
     networks = compose["services"]["prometheus"].get("networks", [])
     assert "crypto_net" in networks
+
+
+# ── Test 7 — Airflow scrape target present ────────────────────────────────────
+
+def test_airflow_scrape_target_present():
+    config = yaml.safe_load(PROMETHEUS_CONFIG.read_text())
+    all_targets = []
+    for job in config["scrape_configs"]:
+        for static in job["static_configs"]:
+            all_targets.extend(static["targets"])
+    assert "airflow:8080" in all_targets
+
+
+# ── Test 8 — Airflow job defined ──────────────────────────────────────────────
+
+def test_airflow_job_defined():
+    config = yaml.safe_load(PROMETHEUS_CONFIG.read_text())
+    job_names = [job["job_name"] for job in config["scrape_configs"]]
+    assert "airflow" in job_names

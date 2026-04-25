@@ -214,6 +214,8 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       DATABASE_URL: ${DATABASE_URL}
       DBT_PROFILES_DIR: /opt/airflow/dbt
+      AIRFLOW__METRICS__STATSD_ON: "false"
+      AIRFLOW__METRICS__METRICS_ENABLED: "true"
     volumes:
       - ./dags:/opt/airflow/dags
       - ./dbt:/opt/airflow/dbt
@@ -251,6 +253,8 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       DATABASE_URL: ${DATABASE_URL}
       DBT_PROFILES_DIR: /opt/airflow/dbt
+      AIRFLOW__METRICS__STATSD_ON: "false"
+      AIRFLOW__METRICS__METRICS_ENABLED: "true"
     volumes:
       - ./dags:/opt/airflow/dags
       - ./dbt:/opt/airflow/dbt
