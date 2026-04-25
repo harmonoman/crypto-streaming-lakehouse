@@ -82,7 +82,16 @@ indent-style = "space"
 [tool.pytest.ini_options]
 testpaths    = ["tests"]
 asyncio_mode = "auto"
-addopts      = "-v"
+addopts = "-v --cov=. --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=40"
+
+[tool.coverage.run]
+omit = [
+    "venv/*",
+    ".venv/*",
+    "migrations/*",
+    "*/__pycache__/*",
+    "tests/*",
+]
 
 # ── mypy ──────────────────────────────────────────────────────────────────────
 [tool.mypy]
