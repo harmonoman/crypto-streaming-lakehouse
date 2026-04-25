@@ -83,3 +83,20 @@ def test_airflow_job_defined():
     config = yaml.safe_load(PROMETHEUS_CONFIG.read_text())
     job_names = [job["job_name"] for job in config["scrape_configs"]]
     assert "airflow" in job_names
+
+
+# ── Test 9 — Airflow metrics env vars set in docker-compose ──────────────────
+
+def test_airflow_metrics_enabled_in_compose():
+    compose = yaml.safe_load(COMPOSE_PATH.read_text())
+    env = compose["services"]["airflow"]["environment"]
+    assert env.get("AIRFLOW__METRICS__METRICS_ENABLED") == "true"
+
+
+# ── Test 10 — Airflow job has correct metrics path ────────────────────────────
+
+def test_airflow_job_has_correct_metrics_path():
+    config = yaml.safe_load(PROMETHEUS_CONFIG.read_text())
+    for job in config["scrape_configs"]:
+        if job["job_name"] == "airflow":
+            assert job.get("metrics_path") == "/health"
