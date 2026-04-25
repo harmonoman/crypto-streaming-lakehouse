@@ -69,9 +69,4 @@ dbt_run → dbt_test → lakehouse_export → sync_metabase
 - `infra/init_airflow.sh` only needs to run once — re-running is safe but unnecessary
 - Airflow metadata is stored in a dedicated `airflow` database in Postgres
 - The `lakehouse_data` volume is shared between Airflow and Metabase — no manual `docker cp` needed
-
----
-
-- The database is migrated automatically by the `airflow-init` container
-- on every `docker compose up`. The init script only needs to run once
-- to create the admin user.
+- The `airflow-init` container automatically runs database migrations on every `docker compose up` — the init script only needs to run once to create the admin user
