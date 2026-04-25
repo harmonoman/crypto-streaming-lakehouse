@@ -56,3 +56,11 @@ def test_docker_compose_has_prometheus_service():
     prometheus = compose["services"]["prometheus"]
     assert any("9090" in str(p) for p in prometheus.get("ports", []))
     assert any("prometheus.yml" in str(v) for v in prometheus.get("volumes", []))
+
+
+# ── Test 6 — Prometheus on correct network ─────────────────────────────────────
+
+def test_prometheus_on_correct_network():
+    compose = yaml.safe_load(COMPOSE_PATH.read_text())
+    networks = compose["services"]["prometheus"].get("networks", [])
+    assert "crypto_net" in networks
