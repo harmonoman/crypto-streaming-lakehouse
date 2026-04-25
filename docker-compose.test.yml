@@ -1,0 +1,54 @@
+# docker-compose.test.yml
+#
+# Ephemeral CI test environment — NOT for production use.
+#
+# Why no named volumes?
+#   CI must be stateless. Each test run starts fresh with a clean database.
+#   Named volumes persist data between runs, causing flaky tests.
+#
+# Why healthchecks?
+#   GitHub Actions starts containers and immediately runs tests. Without
+#   healthchecks, tests fail because Postgres/RabbitMQ aren't ready yet.
+#   Healthchecks ensure services are accepting connections before tests run.
+#
+# Why separate credentials from production?
+#   Test credentials are safe to commit and hardcode. Production credentials
+#   must never appear in source code.
+
+name: crypto-test
+
+services:
+
+  # ── Postgres (test) ───────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: test_postgres
+    environment:
+      POSTGRES_USER:     test_user
+      POSTGRES_PASSWORD: test_pass
+      POSTGRES_DB:       test_db
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d test_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── RabbitMQ (test) ───────────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: test_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: test_user
+      RABBITMQ_DEFAULT_PASS: test_pass
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
