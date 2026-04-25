@@ -27,6 +27,7 @@ from datetime import UTC, datetime, timedelta
 from airflow import DAG  # type: ignore[import]
 from airflow.operators.bash import BashOperator  # type: ignore[import]
 from airflow.operators.python import PythonOperator  # type: ignore[import]
+from dag_callbacks import on_dag_success, on_task_failure  # type: ignore[import]
 from metabase_sync import sync_metabase_schema  # type: ignore[import]
 
 from lakehouse.export import run_export
@@ -37,10 +38,10 @@ logger = get_logger("airflow")
 # ── Default args ──────────────────────────────────────────────────────────────
 
 default_args = {
-    "owner":        "data-engineering",
-    "retries":      1,
-    "retry_delay":  timedelta(minutes=2),
-    # on_failure_callback added in AIRFLOW-002-T3
+    "owner":               "data-engineering",
+    "retries":             1,
+    "retry_delay":         timedelta(minutes=2),
+    "on_failure_callback": on_task_failure,
 }
 
 # ── DAG definition ────────────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ with DAG(
     schedule_interval="@hourly",
     start_date=datetime(2026, 1, 1, tzinfo=UTC),
     catchup=False,
+    on_success_callback=on_dag_success,
     tags=["crypto", "pipeline"],
 ) as dag:
 
@@ -81,4 +83,4 @@ with DAG(
     )
 
     # ── Dependency chain ──────────────────────────────────────────────────────
-    dbt_run >> dbt_test >> lakehouse_export >> sync_metabase
+    dbt_run >> dbt_test >> lakehouse_export >> sync_metabase # type: ignore
