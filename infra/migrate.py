@@ -49,6 +49,24 @@ def get_connection() -> psycopg2.extensions.connection:
         sys.exit(1)
 
 
+def ensure_airflow_db() -> None:
+    """Create the airflow metadata database if it doesn't exist."""
+    database_url = os.environ.get("DATABASE_URL", "")
+    try:
+        conn = psycopg2.connect(database_url, connect_timeout=10)
+        conn.autocommit = True  # CREATE DATABASE cannot run in a transaction
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM pg_database WHERE datname = 'airflow'")
+            if not cur.fetchone():
+                cur.execute("CREATE DATABASE airflow")
+                print("  created airflow database")
+            else:
+                print("  airflow database already exists")
+        conn.close()
+    except psycopg2.Error as exc:
+        print(f"WARNING: Could not ensure airflow database: {exc}", file=sys.stderr)
+
+
 # ── Migration files ───────────────────────────────────────────────────────────
 
 def _numeric_prefix(path: Path) -> int:
@@ -121,13 +139,13 @@ def run_migrations(conn: psycopg2.extensions.connection) -> None:
 
 def main() -> None:
     print("Running migrations...")
+    ensure_airflow_db()
     conn = get_connection()
     try:
         run_migrations(conn)
     finally:
         conn.close()
     sys.exit(0)
-
 
 if __name__ == "__main__":
     main()
