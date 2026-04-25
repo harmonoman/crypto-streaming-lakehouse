@@ -7,9 +7,9 @@ Written BEFORE implementation (TDD).
 
 import contextlib
 
-from prometheus_client import REGISTRY, Counter, Histogram
+from prometheus_client import REGISTRY, Counter, Gauge, Histogram
 
-from shared.metrics import METRIC_PREFIX, create_counter, create_histogram
+from shared.metrics import METRIC_PREFIX, create_counter, create_gauge, create_histogram
 
 
 def _unregister(name):
@@ -70,3 +70,21 @@ def test_create_counter_duplicate_does_not_crash():
     create_counter("test_dedup_total", "First registration")
     create_counter("test_dedup_total", "Second registration")
     _unregister("test_dedup_total")
+
+
+# ── Gauge creation ────────────────────────────────────────────────────────────
+
+def test_create_gauge_returns_gauge_instance():
+    gauge = create_gauge("t11_queue_depth", "A test gauge")
+    assert isinstance(gauge, Gauge)
+
+
+def test_create_gauge_has_correct_prefix():
+    gauge = create_gauge("t12_queue_depth", "A test gauge")
+    assert gauge._name.startswith("crypto_pipeline_")
+
+
+def test_create_gauge_duplicate_returns_same_instance():
+    g1 = create_gauge("t13_queue_depth", "First call")
+    g2 = create_gauge("t13_queue_depth", "Second call")
+    assert g1 is g2

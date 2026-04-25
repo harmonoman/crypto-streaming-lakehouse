@@ -26,7 +26,7 @@ Usage:
 
 import os
 
-from prometheus_client import Counter, Histogram, start_http_server
+from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 # ── HTTP server ───────────────────────────────────────────────────────────────
 
@@ -93,4 +93,26 @@ def create_histogram(name: str, description: str, buckets: list[float], labels: 
     full_name = f"{METRIC_PREFIX}{name}"
     if full_name not in _metric_cache:
         _metric_cache[full_name] = Histogram(full_name, description, buckets=buckets, labelnames=labels or [])
+    return _metric_cache[full_name]
+
+
+def create_gauge(name: str, description: str, labels: list[str] | None = None) -> Gauge:
+    """
+    Create a Prometheus Gauge with the crypto_pipeline_ prefix.
+
+    Gauges track values that can go up and down — queue depth, active
+    connections, memory usage. Unlike counters, gauges can be set, incremented,
+    or decremented directly.
+
+    Args:
+        name:        Metric name without prefix. E.g. "rabbitmq_queue_depth"
+        description: Human-readable description shown in /metrics output.
+        labels:      Optional label names.
+
+    Returns:
+        Gauge — same instance if called again with the same name.
+    """
+    full_name = f"{METRIC_PREFIX}{name}"
+    if full_name not in _metric_cache:
+        _metric_cache[full_name] = Gauge(full_name, description, labelnames=labels or [])
     return _metric_cache[full_name]
