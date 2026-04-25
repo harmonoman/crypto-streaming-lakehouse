@@ -1,19 +1,19 @@
 # Metabase Setup — DuckDB Lakehouse Connection
 
-Metabase connects to the DuckDB lakehouse via a volume mount that makes the
-local `data/` directory visible inside the container at `/data`.
+Metabase connects to the DuckDB lakehouse via a named volume shared with
+Airflow. Both containers mount `lakehouse_data:/data` — when Airflow writes
+a new DuckDB file, Metabase can read it immediately with no file transfer.
 
 ---
 
-## Why a Volume Mount?
+## Why a Shared Volume?
 
-Containers are isolated — they can't see your local filesystem by default.
-A volume mount cuts a window in that wall: the `./data` folder on your machine
-becomes `/data` inside the Metabase container. Metabase can then open the
-DuckDB file at that path as if it were a local file.
+Containers are isolated — they can't see each other's filesystems by default.
+A named volume cuts a window in that wall: `lakehouse_data` is mounted at
+`/data` in both the Metabase and Airflow containers. No `docker cp` needed.
 
 ```yaml
-# docker-compose.yml — metabase service
+# docker-compose.yml — both services mount the same volume
 volumes:
   - lakehouse_data:/data
 ```
@@ -47,16 +47,29 @@ Once connected, the following views are available:
 
 ---
 
+## Data Refresh (Automated via Airflow)
+
+When the `crypto_pipeline` Airflow DAG runs, it automatically:
+
+1. Runs `dbt run` and `dbt test` to refresh Gold tables
+2. Runs `lakehouse/export.py` to write new Parquet files and update the DuckDB file
+3. Calls the Metabase API to trigger a schema sync — no manual steps needed
+
+**Manual refresh (without Airflow):**
+
+```bash
+python lakehouse/export.py
+```
+
+Then in Metabase: **Admin → Databases → Crypto Lakehouse → Sync database schema now**
+
+---
+
 ## Notes
 
-- Run the following after each `dbt run` to refresh Metabase data:
-```bash
-  python lakehouse/export.py
-  docker cp data/crypto_lakehouse.duckdb crypto_metabase:/data/crypto_lakehouse.duckdb
-```
-  Then in Metabase: **Admin → Databases → Crypto Lakehouse → Sync database schema now**
 - The DuckDB file is recreated automatically if deleted — just re-run `python lakehouse/export.py`
 - The `./data` directory is gitignored — it contains generated runtime files only
+- Schema sync is triggered automatically by the Airflow `sync_metabase` task via the Metabase API
 
 ---
 
@@ -84,7 +97,6 @@ conn.execute(\"CREATE OR REPLACE VIEW vw_vwap_1min AS SELECT * FROM read_parquet
 conn.execute(\"CREATE OR REPLACE VIEW vw_trade_stats_1min AS SELECT * FROM read_parquet('/data/gold/gold_trade_stats_1min/**/*.parquet', union_by_name=true)\")
 conn.close()
 "
-docker cp data/crypto_lakehouse.duckdb crypto_metabase:/data/crypto_lakehouse.duckdb
 ```
 
 ---
@@ -92,7 +104,7 @@ docker cp data/crypto_lakehouse.duckdb crypto_metabase:/data/crypto_lakehouse.du
 ## Dashboard Reference Export
 
 A reference copy of the dashboard configuration is saved at:
-metabase/dashboard_export.json
+`metabase/dashboard_export.json`
 
 This file was exported via the Metabase API and contains the dashboard layout
 and chart configurations for the **BTC-USD Live Dashboard**.
