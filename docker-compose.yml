@@ -9,6 +9,7 @@ volumes:
   rabbitmq_data:
   metabase_data:
   lakehouse_data:
+  airflow_logs:
 
 services:
 
@@ -156,3 +157,75 @@ services:
       - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml
     depends_on:
       - rabbitmq
+
+  # ── Airflow Webserver ─────────────────────────────────────────────────────
+  # Why LocalExecutor?
+  #   MVP only — no Celery/Redis required. LocalExecutor runs tasks in
+  #   subprocesses on the same machine, which is sufficient for our
+  #   single-node pipeline schedule.
+  #
+  # Why shared lakehouse_data volume?
+  #   Replaces the manual "docker cp" step. Airflow writes the DuckDB file
+  #   to /data and Metabase reads from the same /data — no file transfer needed.
+
+  airflow:
+    image: apache/airflow:2.9.3
+    container_name: crypto_airflow
+    restart: unless-stopped
+    networks:
+      - crypto_net
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@crypto_postgres:5432/${POSTGRES_DB}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:?AIRFLOW_FERNET_KEY is required}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:?AIRFLOW_SECRET_KEY is required}
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      DATABASE_URL: ${DATABASE_URL}
+      DBT_PROFILES_DIR: /opt/airflow/dbt
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./dbt:/opt/airflow/dbt
+      - lakehouse_data:/data
+      - airflow_logs:/opt/airflow/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: webserver
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health | grep -q healthy || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+
+  # ── Airflow Scheduler ─────────────────────────────────────────────────────
+  # Why a separate scheduler service?
+  #   The webserver serves the UI. The scheduler is responsible for triggering
+  #   DAG runs on schedule. They must run as separate processes.
+
+  airflow-scheduler:
+    image: apache/airflow:2.9.3
+    container_name: crypto_airflow_scheduler
+    restart: unless-stopped
+    networks:
+      - crypto_net
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@crypto_postgres:5432/${POSTGRES_DB}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:?AIRFLOW_FERNET_KEY is required}
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      DATABASE_URL: ${DATABASE_URL}
+      DBT_PROFILES_DIR: /opt/airflow/dbt
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./dbt:/opt/airflow/dbt
+      - lakehouse_data:/data
+      - airflow_logs:/opt/airflow/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: scheduler
