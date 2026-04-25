@@ -1,0 +1,161 @@
+# .github/workflows/ci.yml
+#
+# CI pipeline for crypto-streaming-lakehouse.
+#
+# Why CI on pull_request to main?
+#   Every change must pass quality gates before reaching the protected main
+#   branch. This prevents broken code, failed tests, or lint errors from
+#   ever shipping.
+#
+# Why 4 separate jobs?
+#   Isolation: a lint failure shouldn't block test results from appearing.
+#   Speed: lint, unit tests, and dbt run in parallel — only integration
+#   tests run sequentially due to Docker dependency.
+#
+# Why dbt in CI?
+#   dbt models are SQL code. They can silently break if upstream schema
+#   changes. dbt compile + test in CI catches this before it reaches prod.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  # ── Lint ──────────────────────────────────────────────────────────────────
+  # Catches style and formatting issues before any tests run.
+  # Fast (~10s) — no reason to wait for tests if code is malformed.
+
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Run ruff
+        run: uv run ruff check .
+
+  # ── Unit Tests ────────────────────────────────────────────────────────────
+  # Fast, isolated tests with no external dependencies.
+  # Runs in parallel with lint and dbt.
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Run unit tests with coverage
+        run: uv run pytest tests/unit/ --cov --cov-report=term-missing
+
+  # ── dbt Validation ────────────────────────────────────────────────────────
+  # Validates SQL models compile and all data quality tests pass.
+  # Runs against a real Postgres instance spun up as a service container.
+  # Runs in parallel with lint and unit tests.
+
+  dbt:
+    name: dbt (compile + test)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: crypto_user
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: crypto_pipeline
+        options: >-
+          --health-cmd "pg_isready -U crypto_user -d crypto_pipeline"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://crypto_user:ci_password@localhost:5432/crypto_pipeline
+      PG_HOST: localhost
+      PG_PORT: 5432
+      PG_USER: crypto_user
+      PG_PASSWORD: ci_password
+      PG_DB: crypto_pipeline
+      DBT_PROFILES_DIR: ${{ github.workspace }}/dbt
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Run migrations
+        run: uv run python infra/migrate.py
+
+      - name: dbt deps
+        working-directory: dbt
+        run: uv run dbt deps
+
+      - name: dbt compile
+        working-directory: dbt
+        run: uv run dbt compile
+
+      - name: dbt test
+        working-directory: dbt
+        run: uv run dbt test
+
+  # ── Integration Tests ─────────────────────────────────────────────────────
+  # Tests that validate configuration files and inter-service contracts.
+  # These are config-parsing tests (no live Docker needed for most).
+  # Runs after lint to avoid wasting time on integration if lint fails.
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Run integration tests
+        run: uv run pytest tests/integration/ -v
