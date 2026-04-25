@@ -78,3 +78,29 @@ def test_env_example_has_airflow_secret_key():
 
 def test_dags_directory_exists():
     assert Path("dags").exists(), "dags/ directory must exist for Airflow volume mount"
+
+
+# ── Test 10 — airflow-init service exists ────────────────────────────────────
+
+def test_airflow_init_service_exists():
+    assert "airflow-init" in _compose()["services"]
+
+
+# ── Test 11 — webserver depends on airflow-init ───────────────────────────────
+
+def test_airflow_webserver_depends_on_init():
+    depends = _compose()["services"]["airflow"].get("depends_on", {})
+    assert "airflow-init" in depends
+
+
+# ── Test 12 — scheduler depends on airflow-init ───────────────────────────────
+
+def test_airflow_scheduler_depends_on_init():
+    depends = _compose()["services"]["airflow-scheduler"].get("depends_on", {})
+    assert "airflow-init" in depends
+
+
+# ── Test 13 — AIRFLOW_ADMIN_PASSWORD in .env.example ─────────────────────────
+
+def test_env_example_has_airflow_admin_password():
+    assert "AIRFLOW_ADMIN_PASSWORD" in ENV_EXAMPLE.read_text()

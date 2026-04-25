@@ -158,6 +158,34 @@ services:
     depends_on:
       - rabbitmq
 
+  # ── Airflow Init (runs once) ──────────────────────────────────────────────
+  # Initializes the Airflow metadata database and creates the admin user.
+  # Runs once on first boot then exits. Webserver and scheduler wait for this.
+
+  airflow-init:
+    image: apache/airflow:2.9.3
+    container_name: crypto_airflow_init
+    restart: "no"
+    networks:
+      - crypto_net
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@crypto_postgres:5432/${POSTGRES_DB}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:?AIRFLOW_FERNET_KEY is required}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:?AIRFLOW_SECRET_KEY is required}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_CREATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: admin
+      _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:?AIRFLOW_ADMIN_PASSWORD is required}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: version
+
   # ── Airflow Webserver ─────────────────────────────────────────────────────
   # Why LocalExecutor?
   #   MVP only — no Celery/Redis required. LocalExecutor runs tasks in
@@ -168,6 +196,7 @@ services:
   #   Replaces the manual "docker cp" step. Airflow writes the DuckDB file
   #   to /data and Metabase reads from the same /data — no file transfer needed.
 
+  
   airflow:
     image: apache/airflow:2.9.3
     container_name: crypto_airflow
@@ -193,6 +222,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
     command: webserver
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8080/health | grep -q healthy || exit 1"]
@@ -228,4 +259,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
     command: scheduler
